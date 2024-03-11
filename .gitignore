@@ -13,7 +13,6 @@
 bld/
 
 #Raw data
-src.debt_crisis.data/
 src/debt_crisis/data/
 
 # latex
