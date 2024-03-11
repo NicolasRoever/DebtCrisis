@@ -21,5 +21,7 @@ dependencies:
   - pyyaml
   - setuptools_scm
   - statsmodels
+  - spacy
+  - regex
   - toml
-  - pip: [-e ., kaleido, pdbp]
+  - pip: [-e ., kaleido, pdbp, spacy, re]

@@ -47,3 +47,8 @@ norecursedirs = ["docs"]
 [tool.yamlfix]
 line_length = 88
 none_representation = "null"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+spacy = "^3.0"
+en-core-web-sm = {version = "3.0.0", source = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.0.0/en_core_web_sm-3.0.0.tar.gz"}
