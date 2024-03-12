@@ -25,4 +25,5 @@ dependencies:
   - regex
   - toml
   - matplotlib
+  - openpyxl
   - pip: [-e ., kaleido, pdbp, spacy, regex]

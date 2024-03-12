@@ -193,6 +193,20 @@ def create_sentiment_dictionary_for_lookups(cleaned_data):
     return word_sentiment_dict
 
 
+def create_country_sentiment_index_for_one_transcript_and_print_transcript_number(
+    transcript, lookup_dict, words_environment, country, country_names_file
+):
+    print(
+        f"Processing row {create_country_sentiment_index_for_one_transcript_and_print_transcript_number.row_counter}"
+    )
+    create_country_sentiment_index_for_one_transcript_and_print_transcript_number.row_counter += (
+        1
+    )
+    return create_country_sentiment_index_for_one_transcript(
+        transcript, lookup_dict, words_environment, country, country_names_file
+    )
+
+
 def create_country_sentiment_index_for_one_transcript(
     transcript, lookup_dict, words_environment, country, country_names_file
 ):
