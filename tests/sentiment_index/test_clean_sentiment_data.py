@@ -6,6 +6,11 @@ from src.debt_crisis.sentiment_index.clean_sentiment_data import (
     extract_date_from_transcript,
     extract_data_from_file,
     preprocess_transcript_text,
+    tokenize_text_and_remove_non_alphabetic_characters_and_stop_words,
+    clean_transcript_data_df,
+    create_sentiment_dictionary_for_lookups,
+    create_country_sentiment_index_for_one_transcript,
+    get_country_appearance_index_from_transcript_text,
 )
 
 from src.debt_crisis.config import SRC, NLP_MODEL
@@ -578,47 +583,167 @@ def test_extract_data_from_file():
     )
 
     expected_result = {
-        "date": pd.to_datetime("2004-Apr-06", format="%Y-%b-%d").date(),
-        "company": "BALN.S",
-        "transcript": test_transcript,
+        "Date": pd.to_datetime("2004-Apr-06", format="%Y-%b-%d").date(),
+        "Company": "BALN.S",
+        "Transcript": test_transcript,
     }
 
     actual_result = extract_data_from_file(test_file_path)
 
     assert (
-        actual_result["company"] == expected_result["company"]
+        actual_result["Company"] == expected_result["Company"]
     )  # this is a bit weak :)
 
 
 def test_preprocess_transcript_text(test_transcript=test_transcript):
     actual_result = preprocess_transcript_text(test_transcript)
 
-    assert actual_result != None
+    assert actual_result != None  # this is a bit weak!
 
 
-def te_tokenize_text_and_remove_stop_words_and_non_alphabetic_characters(
+def test_tokenize_text_and_remove_stop_words_and_non_alphabetic_characters(
     nlp_model=NLP_MODEL,
 ):
-    raw_text = "This is an example transcript. It contains stop words and non-alphabetic characters."
+    raw_input = pd.Series(
+        "This is an example transcript. It contains stop words and non-alphabetic characters.",
+        "This is an example transcript. It contains stop words and non-alphabetic characters.",
+    )
 
     # Expected preprocessed tokens
-    expected_tokens = [
-        "example",
-        "transcript",
-        "contains",
-        "stop",
-        "words",
-        "non",
-        "alphabetic",
-        "characters",
-    ]
+    expected_output = pd.Series(
+        "example transcript contains stop words non alphabetic characters",
+        "example transcript contains stop words non alphabetic characters",
+    )
 
     # Call the preprocess_transcript_text function
-    preprocessed_tokens = (
-        tokenize_text_and_remove_stop_words_and_non_alphabetic_characters(
-            raw_text, nlp_model
-        )
+    actual_output = tokenize_text_and_remove_non_alphabetic_characters_and_stop_words(
+        raw_input, nlp_model
     )
 
     # Assert the output is as expected
-    assert preprocessed_tokens == expected_tokens
+    assert expected_output == actual_output
+
+
+def test_clean_transcript_data_df(test_transcript=test_transcript):
+    test_data = pd.DataFrame(
+        {
+            "Date": ["2004-Apr-06", "2004-Apr-06"],
+            "Company": ["BALN.S", "AAPL"],
+            "Transcript": [test_transcript, test_transcript],
+        }
+    )
+
+    expected_output = pd.DataFrame(
+        {
+            "Date": [pd.to_datetime("2004-Apr-06"), pd.to_datetime("2004-Apr-06")],
+            "Company": ["BALN.S", "AAPL"],
+        }
+    )
+
+    actual_output = clean_transcript_data_df(test_data).drop(
+        columns=["Preprocessed_Transcript"]
+    )
+
+    pd.testing.assert_frame_equal(expected_output, actual_output)
+
+
+def test_create_sentiment_dictionary_for_lookups():
+    test_data = pd.DataFrame(
+        {
+            "Word": ["good", "bad", "happy", "sad"],
+            "Positive_Indicator": [1, 0, 1, 0],
+            "Negative_Indicator": [0, 1, 0, 1],
+        }
+    )
+
+    expected_output = {
+        "good": 1,  # positive - negative = 1 - 0 = 1
+        "bad": -1,  # positive - negative = 0 - 1 = -1
+        "happy": 1,  # positive - negative = 1 - 0 = 1
+        "sad": -1,  # positive - negative = 0 - 1 = -1
+    }
+
+    actual_output = create_sentiment_dictionary_for_lookups(test_data)
+
+    assert expected_output == actual_output
+
+
+def test_create_country_sentiment_index_for_one_transcript_case_1():
+    test_transcript = r"""austria is a beautiful country in europe. its capital is berlin. the country has a rich history and culture. many people visit the coiuntry for its beautiful landscapes and historic cities. austria, along with france, italy, and spain, is one of the most visited countries in europe."""
+
+    lookup_dict = {"beautiful": 1}
+
+    country = "austria"
+
+    words_environment = 4
+
+    country_names_file = pd.DataFrame(
+        {
+            "name": ["austria", "germany"],
+            "adjectival": ["austrian", "german"],
+            "demonymic": ["austrians", "germans"],
+            "capital": ["vienna", "berlin"],
+            "other": [None, None],
+        }
+    )
+
+    expected_output = 1
+
+    actual_output = create_country_sentiment_index_for_one_transcript(
+        transcript=test_transcript,
+        lookup_dict=lookup_dict,
+        country=country,
+        words_environment=words_environment,
+        country_names_file=country_names_file,
+    )
+
+    assert expected_output == actual_output
+
+
+def test_create_country_sentiment_index_for_one_transcript_case_2():
+    test_transcript = r"""
+  austria is a beautiful country in europe. its capital is berlin. the country has a rich history and culture. many people visit the coiuntry for its beautiful landscapes and historic cities. austria, along with france, italy, and spain, is one of the most visited countries in europe.
+  """
+
+    lookup_dict = {"beautiful": 1, "historic": -1}
+
+    country = "austria"
+
+    words_environment = 4
+
+    country_names_file = pd.DataFrame(
+        {
+            "name": ["austria", "germany"],
+            "adjectival": ["austrian", "german"],
+            "demonymic": ["austrians", "germans"],
+            "capital": ["vienna", "berlin"],
+            "other": [None, None],
+        }
+    )
+
+    expected_output = 0
+
+    actual_output = create_country_sentiment_index_for_one_transcript(
+        transcript=test_transcript,
+        lookup_dict=lookup_dict,
+        country=country,
+        words_environment=words_environment,
+        country_names_file=country_names_file,
+    )
+
+    assert expected_output == actual_output
+
+
+def test_get_country_appearance_index_from_transcript_text():
+    test_transcript = re.findall(
+        r"\b\w+\b", r"""germany is a beautiful country deutschland."""
+    )
+
+    country_names = {"germany", "deutschland"}
+
+    expected_indices = [0, 5]
+    actual_indices = get_country_appearance_index_from_transcript_text(
+        test_transcript, country_names
+    )
+
+    assert actual_indices == expected_indices

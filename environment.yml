@@ -24,4 +24,5 @@ dependencies:
   - spacy
   - regex
   - toml
-  - pip: [-e ., kaleido, pdbp, spacy, re]
+  - matplotlib
+  - pip: [-e ., kaleido, pdbp, spacy, regex]

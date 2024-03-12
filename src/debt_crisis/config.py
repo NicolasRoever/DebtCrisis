@@ -20,3 +20,6 @@ QUARTERLY_DATA_PATHS = [
 PATH_TO_TRANSCRIPTS = Path("src/debt_crisis/data/transcripts/raw/Eikon 2002 - 2022/")
 
 NLP_MODEL = spacy.load("en_core_web_sm")
+
+
+NO_LONG_RUNNING_TASKS = True

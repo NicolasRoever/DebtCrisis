@@ -1,11 +1,44 @@
 import os
-import re
-
 import pandas as pd
 import regex as re
-from spacy.tokens import Doc
+import numpy as np
 
 from debt_crisis.config import NLP_MODEL
+
+
+def clean_transcript_data_df(raw_dataframe):
+    """This function takes in a raw dataframe and returns a cleaned version.
+
+    Args: raw_dataframe (pd.DataFrame): Raw dataframe with transcripts as created by the task combine_all_transcripts_into_initial_dataframe
+
+    Returns pd.DataFrame: Cleaned dataframe
+    columns: Date (pd.DateTime): Date of the earnings call extracted from the file name
+            Company (str): Name of the company as ticker symbol
+            Transcript (str): Text of the transcript
+            Cleaned_Transcript (str): Preprocessed text of the transcript
+
+    """
+
+    cleaned_data = pd.DataFrame()
+
+    cleaned_data["Date"] = pd.to_datetime(raw_dataframe["Date"])
+    cleaned_data["Company"] = raw_dataframe["Company"]
+
+    cleaned_data["Raw_Transcript"] = raw_dataframe["Transcript"]
+
+    def preprocess_and_print(transcript_text):
+        print(f"Processing row {preprocess_and_print.row_counter}")
+        preprocess_and_print.row_counter += 1
+        return preprocess_transcript_text(transcript_text)
+
+    # Initialize a counter attribute for the function
+    preprocess_and_print.row_counter = 0
+
+    cleaned_data["Preprocessed_Transcript_Step_1"] = raw_dataframe["Transcript"].apply(
+        preprocess_and_print
+    )
+
+    return cleaned_data
 
 
 def extract_date_from_transcript(transcript):
@@ -42,7 +75,7 @@ def extract_data_from_file(file_path):
     with open(file_path, encoding="utf-8") as f:
         transcript = f.read()
 
-    return {"date": date, "company": company, "transcript": transcript}
+    return {"Date": date, "Company": company, "Transcript": transcript}
 
 
 def combine_all_transcripts_into_dataframe(root_transcript_directory):
@@ -67,7 +100,7 @@ def combine_all_transcripts_into_dataframe(root_transcript_directory):
                 data_list.append(extract_data_from_file(file_path))
 
     # Create data frame from the list
-    return pd.DataFrame(data_list).sort_values(by="date").reset_index(drop=True)
+    return pd.DataFrame(data_list).sort_values(by="Date").reset_index(drop=True)
 
 
 def preprocess_transcript_text(raw_transcript_text, nlp_model=NLP_MODEL):
@@ -95,40 +128,138 @@ def preprocess_transcript_text(raw_transcript_text, nlp_model=NLP_MODEL):
     # Convert to lowercase and remove non-alphabetic characters
     text = re.sub(r"[^a-zA-Z\s]", "", text.lower())
 
-    # Tokenize raw_transcript_text and remove stop words using spaCy
-    doc = Doc(nlp_model.vocab, words=text.split())
-
-    return [
-        token.text
-        for token in nlp_model.pipeline[0](doc)
-        if not token.is_stop and token.is_alpha
-    ]
+    return text
 
 
 def tokenize_text_and_remove_non_alphabetic_characters_and_stop_words(
-    text,
-    nlp_model=NLP_MODEL,
+    column, nlp_model=NLP_MODEL
 ):
-    """This function takes in a string of text and tokenizes it using the spaCy model
-    and removes stop words and non-alphabetic characters.
+    """This function takes in a column of text and tokenizes each text using the spaCy
+    model, and removes stop words and non-alphabetic characters.
 
-    Args: text (str): Raw transcript text
-          nlp_model (spacy model): SpaCy model to use for tokenization
+    Args:
+        column (pd.Series): Series of raw transcript texts
+        nlp_model (spacy model): SpaCy model to use for tokenization
 
-    Returns: List of tokens
+    Returns:
+        pd.Series: Series of tokenized texts
 
     """
-    # Extract the tokenizer from the pipeline
-    tokenizer = None
-    for component_name, component_func in nlp_model.pipeline:
-        if component_name == "tok2vec":
-            tokenizer = component_func
-            break
+    # Use SpaCy's pipe method for batch processing
+    processed_texts = list(nlp_model.pipe(column))
 
-    if tokenizer is None:
-        msg = "Tokenizer not found in the spaCy pipeline"
-        raise ValueError(msg)
+    # Process each document in the processed_texts
+    tokenized_texts = []
+    for doc in processed_texts:
+        filtered_tokens = [
+            token.text for token in doc if not token.is_stop and not token.is_punct
+        ]
+        tokenized_texts.append(" ".join(filtered_tokens))
 
-    doc = Doc(nlp_model.vocab, words=text.split())
+    return pd.Series(tokenized_texts, index=column.index)
 
-    return [token.text for token in tokenizer(doc) if not token.is_alpha]
+
+def clean_sentiment_dictionary_data(raw_data):
+    """This function takes in a raw dictionary and returns a cleaned version."""
+
+    cleaned_data = pd.DataFrame()
+
+    cleaned_data["Word"] = raw_data["Word"].str.lower()
+    cleaned_data["Positive"] = raw_data["Positive"]
+    cleaned_data["Negative"] = raw_data["Negative"]
+    cleaned_data["Positive_Indicator"] = np.where(cleaned_data["Positive"] > 0, 1, 0)
+    cleaned_data["Negative_Indicator"] = np.where(cleaned_data["Negative"] > 0, 1, 0)
+
+    return cleaned_data
+
+
+def create_sentiment_dictionary_for_lookups(cleaned_data):
+    """THis function takes in a cleaned sentiment dictionary and returns a dictionary
+    with the word as key and the sentiment value as value."""
+
+    word_sentiment_dict = {}  # Dictionary to store word sentiment values
+
+    for index, row in cleaned_data.iterrows():
+        word = row["Word"]
+        positive = row["Positive_Indicator"]
+        negative = row["Negative_Indicator"]
+
+        # Calculate the value as positive - negative for the word
+        sentiment_value = positive - negative
+
+        # Store the sentiment value in the dictionary
+        word_sentiment_dict[word] = sentiment_value
+
+    return word_sentiment_dict
+
+
+def create_country_sentiment_index_for_one_transcript(
+    transcript, lookup_dict, words_environment, country, country_names_file
+):
+    """This function takes in an earnings call transcript and a lookup dictionary and
+    returns a sentiment index for the transcript. The sentiment index is calculated as
+    the sum of the sentiment values of the words in the transcript.
+
+    Args: transcript (str): Earnings call transcript
+        lookup_dict (dict): Dictionary with words as keys and sentiment values as values
+        words_envirnoment (int): number of words before and after the country to consider
+        country (str): country to consider
+        country_names_file (pd.Dataframe): file with the names of the countries
+
+    Returns: int: Sentiment index for the transcript
+
+    """
+
+    # First, I get all name versions of the country
+    country_row = country_names_file[
+        country_names_file["name"].str.lower() == country.lower()
+    ]
+    if not country_row.empty:
+        country_names = set(country_row.iloc[0].values.tolist())
+    else:
+        country_names = set()
+
+    transcript_words = re.findall(r"\b\w+\b", transcript.lower())
+
+    # Now, I get the indices where these words appear in the transcript
+    country_indices = get_country_appearance_index_from_transcript_text(
+        transcript_words, country_names
+    )
+
+    # Calculate sentiment index based on the words around the country occurrences
+    sentiment_index = 0
+
+    for index in country_indices:
+        start = max(0, index - words_environment)
+        end = min(len(transcript), index + words_environment)
+        context_words = transcript_words[start:end]
+
+        for word in context_words:
+            if word in lookup_dict:
+                sentiment_index += lookup_dict[word]
+
+    return sentiment_index
+
+
+def get_country_appearance_index_from_transcript_text(transcript_words, country_names):
+    """Get a list of indices where any of the country names or their alternate names are
+    found in the transcript.
+
+    Args:
+        transcript (str): Earnings call transcript
+        country_names (set): Set of country names and alternate names
+
+    Returns:
+        list: List of indices where country names or alternate names are found
+
+    """
+
+    # Initialize a list to store indices
+    country_indices = []
+
+    # Iterate through words and check for country names or alternate names
+    for i, word in enumerate(transcript_words):
+        if word in country_names:
+            country_indices.append(i)
+
+    return country_indices
