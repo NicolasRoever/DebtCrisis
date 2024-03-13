@@ -2,6 +2,11 @@ import pandas as pd
 
 import re
 
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+
+
 from src.debt_crisis.sentiment_index.clean_sentiment_data import (
     extract_date_from_transcript,
     extract_data_from_file,
@@ -11,6 +16,7 @@ from src.debt_crisis.sentiment_index.clean_sentiment_data import (
     create_sentiment_dictionary_for_lookups,
     create_country_sentiment_index_for_one_transcript,
     get_country_appearance_index_from_transcript_text,
+    calculate_loughlan_mcdonald_sentiment_index,
 )
 
 from src.debt_crisis.config import SRC, NLP_MODEL
@@ -747,3 +753,58 @@ def test_get_country_appearance_index_from_transcript_text():
     )
 
     assert actual_indices == expected_indices
+
+
+def test_calculate_loughlan_mcdonald_sentiment_index():
+    test_input = pd.DataFrame(
+        {
+            "Date": [datetime(2022, 1, 1), datetime(2022, 2, 1)],
+            "Transcript": [
+                "This is a transcript text for testing",
+                "Another transcript text for testing",
+            ],
+            "Sentiment_Index_McDonald_USA": [1, 2],
+            "Sentiment_Index_McDonald_Australia": [1, 2],
+        }
+    )
+
+    countries_under_study = ["USA", "Australia"]
+
+    # Create date range from 1st January 2022 to 1st May 2022
+    date_range = pd.date_range(start="1/1/2003", end="1/1/2023")
+
+    # Create a DataFrame with 'Date' column
+    expected_output = pd.DataFrame(date_range, columns=["Date"])
+
+    # Create 'Sentiment_Index_USA' column with default value 0
+    expected_output["Sentiment_Index_McDonald_USA"] = np.nan
+
+    expected_output.loc[
+        (expected_output["Date"] >= datetime(2022, 1, 1))
+        & (expected_output["Date"] < datetime(2022, 2, 1)),
+        "Sentiment_Index_McDonald_USA",
+    ] = 1
+
+    # Update 'Sentiment_Index_USA' to 3 for dates from February to 1st April
+    expected_output.loc[
+        (expected_output["Date"] >= datetime(2022, 2, 1))
+        & (expected_output["Date"] <= (datetime(2022, 4, 1))),
+        "Sentiment_Index_McDonald_USA",
+    ] = 1.5
+
+    # Update 'Sentiment_Index_USA' to 2 for dates from 1st April to end
+    expected_output.loc[
+        (expected_output["Date"] > datetime(2022, 4, 1))
+        & (expected_output["Date"] <= (datetime(2022, 5, 2))),
+        "Sentiment_Index_McDonald_USA",
+    ] = 2
+
+    expected_output["Sentiment_Index_McDonald_Australia"] = expected_output[
+        "Sentiment_Index_McDonald_USA"
+    ]
+
+    actual_output = calculate_loughlan_mcdonald_sentiment_index(
+        test_input, countries_under_study
+    )
+
+    pd.testing.assert_frame_equal(expected_output, actual_output, check_dtype=False)

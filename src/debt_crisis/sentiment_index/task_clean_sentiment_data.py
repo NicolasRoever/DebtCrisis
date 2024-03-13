@@ -1,4 +1,5 @@
 import pandas as pd
+from pytask import task
 import pytask
 import matplotlib.pyplot as plt
 import pickle
@@ -11,6 +12,7 @@ from debt_crisis.sentiment_index.clean_sentiment_data import (
     clean_sentiment_dictionary_data,
     create_sentiment_dictionary_for_lookups,
     create_country_sentiment_index_for_one_transcript_and_print_transcript_number,
+    calculate_loughlan_mcdonald_sentiment_index,
 )
 
 
@@ -24,26 +26,6 @@ def task_clean_sentiment_dictionary(
     raw_data = pd.read_csv(depends_on)
     cleaned_data = clean_sentiment_dictionary_data(raw_data)
     cleaned_data.to_pickle(produces)
-
-
-def task_plot_raw_data_sentiment_dictionart_barplot(
-    depends_on=BLD / "data" / "sentiment_dictionary_clean.pkl",
-    produces=BLD / "figures" / "barplot_sentiment_dictionary.png",
-):
-    df = pd.read_pickle(depends_on)
-    positive_sum = df["Positive"].sum()
-    negative_sum = df["Negative"].sum()
-
-    # Create a bar plot
-    plt.bar(["Positive", "Negative"], [positive_sum, negative_sum])
-
-    # Add labels and title
-    plt.xlabel("Sentiment")
-    plt.ylabel("Count")
-    plt.title("Sum of Positive and Negative Words")
-
-    # Save the plot as a PNG file (replace 'figure.png' with your desired file name)
-    plt.savefig(produces)
 
 
 def task_plot_histogram_negative_words(
@@ -69,31 +51,109 @@ def task_create_loughlan_mcdonald_dictionary_for_lookup(
         pickle.dump(word_sentiment_dict, f)
 
 
-def task_plot_sentiment_index_austria(
-    depends_on=BLD / "data" / "df_transcripts_clean_step_2.pkl",
-    produces=BLD / "figures" / "sentiment_index_austria.png",
+def task_clean_McDonald_sentiment_index(
+    depends_on=BLD / "data" / "mcdonald_sentiment_index.pkl",
+    produces=BLD / "data" / "mcdonald_sentiment_index_cleaned.pkl",
 ):
     df = pd.read_pickle(depends_on)
-    # Calculate the moving average of the sentiment index column over the last 3 months
-    df.set_index("Date", inplace=True)
-
-    df["moving_average"] = (
-        df["Sentiment_Index_McDonald_austria"].rolling(window="90D").sum()
+    cleaned_data = df.melt(
+        id_vars=["Date"], var_name="Country", value_name="McDonald_Sentiment_Index"
     )
 
-    # Plot the moving average with date on the x-axis
-    plt.figure(figsize=(10, 6))
-    plt.plot(df.index, df["moving_average"], label="Cumulative Sum(3 months)")
-    plt.xlabel("Date")
-    plt.ylabel("Moving Average of Sentiment Index")
-    plt.title("Moving Average of Sentiment Index Over the Last 3 Months")
-    plt.legend()
+    cleaned_data["Country"] = (
+        cleaned_data["Country"].str.split("_", expand=True).iloc[:, -1]
+    )
+
+    cleaned_data.to_pickle(produces)
+
+
+def task_plot_all_countries_sentiment_index_cumulative_sum(
+    depends_on=BLD / "data" / "df_transcripts_clean_step_2.pkl",
+    countries=COUNTRIES_UNDER_STUDY,
+    produces=BLD / "figures" / "sentiment_index_all_countries_cum_sum.png",
+):
+    df = pd.read_pickle(depends_on)
+    df.set_index("Date", inplace=True)
+
+    fig = plt.figure(1)
+    ax = fig.add_subplot(111)
+
+    for country in countries:
+        # Calculate the moving average of the sentiment index column over the last 3 months
+        df[f"moving_average_{country}"] = (
+            df[f"Sentiment_Index_McDonald_{country.lower()}"]
+            .rolling(window="90D")
+            .sum()
+        )
+        ax.plot(
+            df.index,
+            df[f"moving_average_{country}"],
+            label=f"Cumulative Sum(3 months) {country}",
+        )
+
+    handles, labels = ax.get_legend_handles_labels()
+
+    lgd = ax.legend(
+        handles,
+        labels,
+        loc="best",
+        bbox_to_anchor=(0.5, -0.1),
+        ncol=len(countries),
+        fontsize="small",
+        title="Countries",
+        title_fontsize="medium",
+        handlelength=2.5,
+    )
+
     plt.grid(True)
     plt.xticks(rotation=45)
-    plt.tight_layout()
 
-    plt.savefig(produces)
+    fig.savefig(produces, bbox_extra_artists=(lgd,), bbox_inches="tight")
 
+
+for country in COUNTRIES_UNDER_STUDY:
+
+    @task(id=country)
+    def task_plot_sentiment_index_cumulative_sum(
+        depends_on=BLD / "data" / "mcdonald_sentiment_index.pkl",
+        country=country,
+        produces=BLD / "figures" / f"sentiment_index_{country}_cum_sum.png",
+    ):
+        df = pd.read_pickle(depends_on)
+        # Calculate the moving average of the sentiment index column over the last 3 months
+        df.set_index("Date", inplace=True)
+
+        # Plot the moving average with date on the x-axis
+        plt.figure(figsize=(10, 6))
+        plt.plot(
+            df.index,
+            df[f"Sentiment_Index_McDonald_{country}"],
+            label="Cumulative SUm / Earnings Calls last 3 Months",
+        )
+        plt.xlabel("Date")
+        plt.ylabel("Sentiment Index")
+        plt.title(
+            f"Sentiment Index Over the Last 3 Months {country} in Moving Average Style"
+        )
+        plt.legend()
+        plt.grid(True)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+
+        plt.savefig(produces)
+
+
+# @pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")
+# def task_calculate_McDonald_sentiment_index(
+#     depends_on=BLD / "data" / "df_transcripts_clean_step_2.pkl",
+#     countries = COUNTRIES_UNDER_STUDY,
+#     produces=BLD / "data" / "mcdonald_sentiment_index.pkl"):
+
+#     df = pd.read_pickle(depends_on)
+
+#     sentiment_index_data = calculate_loughlan_mcdonald_sentiment_index(df, countries)
+
+#     sentiment_index_data.to_pickle(produces)
 
 # task_clean_transcript_data_step_2_dependencies = {
 #     "df_transcripts_step_1" : BLD / "data" / "df_transcripts_clean_step_1.pkl",
@@ -103,6 +163,7 @@ def task_plot_sentiment_index_austria(
 # }
 
 
+# @pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")
 # def task_clean_transcript_data_step_2(
 #     depends_on=task_clean_transcript_data_step_2_dependencies,
 #     countries_under_study=COUNTRIES_UNDER_STUDY,
@@ -150,3 +211,23 @@ def task_plot_sentiment_index_austria(
 #     cleaned_data = clean_transcript_data_df(raw_data)
 
 #     cleaned_data.to_pickle(produces)
+
+
+# def task_plot_raw_data_sentiment_dictionart_barplot(
+#     depends_on=BLD / "data" / "sentiment_dictionary_clean.pkl",
+#     produces=BLD / "figures" / "barplot_sentiment_dictionary.png",
+# ):
+#     df = pd.read_pickle(depends_on)
+#     positive_sum = df["Positive"].sum()
+#     negative_sum = df["Negative"].sum()
+
+#     # Create a bar plot
+#     plt.bar(["Positive", "Negative"], [positive_sum, negative_sum])
+
+#     # Add labels and title
+#     plt.xlabel("Sentiment")
+#     plt.ylabel("Count")
+#     plt.title("Sum of Positive and Negative Words")
+
+#     # Save the plot as a PNG file (replace 'figure.png' with your desired file name)
+#     plt.savefig(produces)

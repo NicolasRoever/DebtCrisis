@@ -15,6 +15,9 @@ __all__ = ["BLD", "SRC", "TEST_DIR", "GROUPS"]
 QUARTERLY_DATA_PATHS = [
     SRC.joinpath(Path("data/financial_data/debt-to-gdp_EU.csv")),
     SRC.joinpath(Path("data/financial_data/gdp_EU.csv")),
+    SRC.joinpath(Path("data/financial_data/stoxx50_vstoxx.xlsx")),
+    SRC.joinpath(Path("data/financial_data/eu_yields_10y.xlsx")),
+    SRC.joinpath(Path("data/financial_data/current account_EU.csv")),
 ]
 
 PATH_TO_TRANSCRIPTS = Path("src/debt_crisis/data/transcripts/raw/Eikon 2002 - 2022/")
