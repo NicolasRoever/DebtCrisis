@@ -26,4 +26,5 @@ dependencies:
   - toml
   - matplotlib
   - openpyxl
+  - seaborn
   - pip: [-e ., kaleido, pdbp, spacy, regex]

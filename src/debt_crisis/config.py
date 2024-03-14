@@ -22,6 +22,8 @@ QUARTERLY_DATA_PATHS = [
 
 PATH_TO_TRANSCRIPTS = Path("src/debt_crisis/data/transcripts/raw/Eikon 2002 - 2022/")
 
+RATINGS_DATA_PATH = SRC / "data" / "financial_data" / "ratings"
+
 COUNTRIES_UNDER_STUDY = [
     "austria",
     "belgium",

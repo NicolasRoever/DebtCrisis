@@ -1,25 +1,13 @@
 """Utilities used in various parts of the project."""
 
 import yaml
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
-def read_yaml(path):
-    """Read a YAML file.
-
-    Args:
-        path (str or pathlib.Path): Path to file.
-
-    Returns:
-        dict: The parsed YAML file.
-
-    """
-    with open(path) as stream:
-        try:
-            out = yaml.safe_load(stream)
-        except yaml.YAMLError as error:
-            info = (
-                "The YAML file could not be loaded. Please check that the path points "
-                "to a valid YAML file."
-            )
-            raise ValueError(info) from error
-    return out
+def _make_missing_values_heatmap(data, data_name):
+    """Create a heatmap to visualize missing values in a DataFrame."""
+    plt.figure(figsize=(10, 6))
+    sns.heatmap(data.isnull(), cbar=False, cmap="viridis")
+    plt.title("Missing Values in Dataset " + data_name)
+    plt.show()
