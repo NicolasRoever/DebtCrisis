@@ -144,6 +144,18 @@ for country in COUNTRIES_UNDER_STUDY:
 
 
 # @pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")
+def task_combine_all_transcripts_into_initial_dataframe(
+    data_directory=str(
+        SRC / "data" / "transcripts" / "raw" / "Eikon 2002 - 2022",
+    ),  # This should be fixed !!!
+    produces=BLD / "data" / "df_transcripts_raw.pkl",
+):
+    full_dataframe = combine_all_transcripts_into_dataframe(data_directory)
+
+    full_dataframe.to_pickle(produces)
+
+
+# @pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")
 # def task_calculate_McDonald_sentiment_index(
 #     depends_on=BLD / "data" / "df_transcripts_clean_step_2.pkl",
 #     countries = COUNTRIES_UNDER_STUDY,
@@ -188,18 +200,6 @@ for country in COUNTRIES_UNDER_STUDY:
 #         ))
 
 #     cleaned_data.to_pickle(produces)
-
-
-# @pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")
-# def task_combine_all_transcripts_into_initial_dataframe(
-#     data_directory=str(
-#         SRC / "data" / "transcripts" / "raw" / "Eikon 2002 - 2022",
-#     ),  # This should be fixed !!!
-#     produces=BLD / "data" / "df_transcripts_raw.pkl",
-# ):
-#     full_dataframe = combine_all_transcripts_into_dataframe(data_directory)
-
-#     full_dataframe.to_pickle(produces)
 
 
 # @pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")

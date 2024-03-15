@@ -56,5 +56,64 @@ COUNTRIES_UNDER_STUDY = [
 
 NLP_MODEL = spacy.load("en_core_web_sm")
 
+VARIABLES_IN_GLOBAL_FISCAL_RAW_DATA = [
+    "ggdy",
+    "pby",
+    "cby",
+    "fby",
+    "dfggd",
+    "dffb",
+    "ggdma",
+    "fbma",
+    "fxsovsh",
+    "secnres",
+    "fordebtsh",
+    "concggd",
+    "avglife",
+    "debtduey",
+    "xtdebty",
+    "fxdebtall",
+    "prdebty",
+    "pscy",
+    "stdebtall",
+    "stdebtres",
+    "xtdebtres",
+    "xtdebtrxg",
+    "sovrate",
+]
+
+GLOBAL_FISCAL_RAW_DATA_PATH = SRC / "data" / "financial_data" / "Fiscal-space-data.xlsx"
+
+MAPPING_CURRENCY_TO_COUNTRY = {
+    "AUD": "Australia",
+    "CAD": "Canada",
+    "CHF": "Switzerland",
+    "DKK": "Denmark",
+    "EUR": "Germany",
+    "GBP": "United Kingdom",
+    "JPY": "Japan",
+    "NOK": "Norway",
+    "NZD": "New Zealand",
+    "SEK": "Sweden",
+    "BRL": "Brazil",
+    "CLP": "Chile",
+    "CNY": "China",
+    "COP": "Colombia",
+    "HUF": "Hungary",
+    "IDR": "Indonesia",
+    "ILS": "Israel",
+    "INR": "India",
+    "KRW": "Korea",
+    "MXN": "Mexico",
+    "MYR": "Malaysia",
+    "PEN": "Peru",
+    "PHP": "Philippines",
+    "PLN": "Poland",
+    "RUB": "Russia",
+    "THB": "Thailand",
+    "TRY": "Turkey",
+    "ZAR": "South Africa",
+}
+
 
 NO_LONG_RUNNING_TASKS = True

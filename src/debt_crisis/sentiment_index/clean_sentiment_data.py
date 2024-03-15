@@ -101,7 +101,11 @@ def combine_all_transcripts_into_dataframe(root_transcript_directory):
                 data_list.append(extract_data_from_file(file_path))
 
     # Create data frame from the list
-    return pd.DataFrame(data_list).sort_values(by="Date").reset_index(drop=True)
+    data = pd.DataFrame(data_list).sort_values(by="Date").reset_index(drop=True)
+
+    data["Transcript_ID"] = data.index
+
+    return data
 
 
 def preprocess_transcript_text(raw_transcript_text, nlp_model=NLP_MODEL):
