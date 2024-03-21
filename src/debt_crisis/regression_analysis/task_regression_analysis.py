@@ -2,16 +2,141 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from debt_crisis.regression_analysis.regression_analysis import (
-    create_dataset_step_one_regression,
-    run_first_step_regression,
-    run_second_step_regression,
-    run_third_step_regression,
+    create_dataset_step_one_regression_eurostat_data,
+    run_first_step_regression_eurostat,
+    run_second_step_regression_eurostat,
+    run_third_step_regression_eurostat,
+    create_dataset_step_one_regression_quarterly_data,
+    run_step_one_regression_quarterly_data,
+    run_step_two_regression_quarterly_data,
+    run_step_three_regression_quarterly_data,
 )
 
 from debt_crisis.config import BLD
 
 
-dependencies_task_create_dataset_step_one_regression = {
+# ------------------------------------------------------------------------------------------
+# Quarterly Macroeconomic Data Implementation
+
+
+dependencies_task_create_dataset_step_one_regression_quarterly_macro_data = {
+    "quarterly_macro_data": BLD
+    / "data"
+    / "financial_data"
+    / "Quarterly Macroeconomic Variables_cleaned.pkl",
+    "sentiment_index_data": BLD / "data" / "mcdonald_sentiment_index_cleaned.pkl",
+}
+
+
+def task_create_dataset_step_one_regression_quarterly_macro_data(
+    depends_on=dependencies_task_create_dataset_step_one_regression_quarterly_macro_data,
+    produces=BLD / "data" / "step_one_regression_dataset_quarterly_data.pkl",
+):
+    quarterly_macro_data = pd.read_pickle(depends_on["quarterly_macro_data"])
+
+    sentiment_index_data = pd.read_pickle(depends_on["sentiment_index_data"])
+
+    dataset = create_dataset_step_one_regression_quarterly_data(
+        quarterly_macro_data, sentiment_index_data
+    )
+
+    dataset.to_pickle(produces)
+
+
+def task_run_first_step_regression_quarterly(
+    depends_on=BLD / "data" / "step_one_regression_dataset_quarterly_data.pkl",
+    produces=[
+        BLD / "models" / "first_step_regression_quarterly.txt",
+        BLD / "data" / "step_one_regression_dataset_output_quarterly.pkl",
+    ],
+):
+    # Load the data
+    data = pd.read_pickle(depends_on).dropna()
+
+    # Run the regression
+    model = run_step_one_regression_quarterly_data(data)
+
+    # Get the summary of the model
+    model_summary = model.summary()
+
+    # Save the summary as a text file
+    with open(produces[0], "w") as file:
+        file.write(model_summary.as_text())
+
+    data["Fitted_Values_Step_One_Regression"] = model.fittedvalues
+    data["Residuals_Step_One_Regression"] = model.resid
+
+    data.to_pickle(produces[1])
+
+
+def task_run_second_step_regression_quarterly(
+    depends_on=BLD / "data" / "step_one_regression_dataset_output_quarterly.pkl",
+    produces=[
+        BLD / "models" / "second_step_regression_quarterly.txt",
+        BLD / "data" / "step_two_regression_dataset_output_quarterly.pkl",
+    ],
+):
+    data = pd.read_pickle(depends_on)
+
+    model = run_step_two_regression_quarterly_data(data)
+
+    model_summary = model.summary()
+
+    with open(produces[0], "w") as file:
+        file.write(model_summary.as_text())
+
+    data["Residuals_Step_Two_Regression"] = model.resid
+    data["Fitted_Values_Step_Two_Regression"] = model.fittedvalues
+
+    data.to_pickle(produces[1])
+
+
+def task_run_step_three_regression_quarterly(
+    depends_on=BLD / "data" / "step_two_regression_dataset_output_quarterly.pkl",
+    produces=BLD / "models" / "third_step_regression_quarterly.txt",
+):
+    data = pd.read_pickle(depends_on)
+
+    model = run_step_three_regression_quarterly_data(data)
+
+    model_summary = model.summary()
+
+    with open(produces, "w") as file:
+        file.write(model_summary.as_text())
+
+
+def task_plot_fitted_values_vs_real_yield(
+    depends_on=BLD / "data" / "step_two_regression_dataset_output_quarterly.pkl",
+    produces=BLD / "figures" / "fitted_values_vs_real_yield_greece.png",
+):
+    data = pd.read_pickle(depends_on)
+    data_filter = data[data["Country"] == "greece"]
+
+    fig, ax = plt.subplots()
+    ax.plot(
+        data_filter["Date"],
+        data_filter["Fitted_Values_Step_Two_Regression"],
+        label="Fitted Values",
+    )
+    ax.plot(
+        data_filter["Date"], data_filter["10y_Maturity_Bond_Yield"], label="Real Yield"
+    )
+    ax.plot(
+        data_filter["Date"], data_filter["Public_Debt_as_%_of_GDP"], label="Residuals"
+    )
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Value")
+    ax.set_title("Fitted Values vs Real Yield for Greece")
+    ax.legend()
+
+    fig.savefig(produces)
+
+
+# ------------------------------------------------------------------------------------------
+# Eurostat Data Implementation
+
+
+dependencies_task_create_dataset_step_one_regression_eurostat_data = {
     "bond_yield_data": BLD / "data" / "financial_data" / "eu_yields_10y_cleaned.pkl",
     "debt_to_gdp_data": BLD / "data" / "financial_data" / "debt-to-gdp_EU_cleaned.pkl",
     "sentiment_index_data": BLD / "data" / "mcdonald_sentiment_index_cleaned.pkl",
@@ -26,8 +151,8 @@ dependencies_task_create_dataset_step_one_regression = {
 
 
 def task_create_dataset_step_one_regression(
-    depends_on=dependencies_task_create_dataset_step_one_regression,
-    produces=BLD / "data" / "step_one_regression_dataset.pkl",
+    depends_on=dependencies_task_create_dataset_step_one_regression_eurostat_data,
+    produces=BLD / "data" / "step_one_regression_dataset_eurostat.pkl",
 ):
     bond_yield_data = pd.read_pickle(depends_on["bond_yield_data"])
 
@@ -43,7 +168,7 @@ def task_create_dataset_step_one_regression(
 
     stoxx_data = pd.read_pickle(depends_on["stoxx_data"])
 
-    dataset = create_dataset_step_one_regression(
+    dataset = create_dataset_step_one_regression_eurostat_data(
         bond_yield_data,
         debt_to_gdp_data,
         sentiment_index_data,
@@ -56,18 +181,18 @@ def task_create_dataset_step_one_regression(
     dataset.to_pickle(produces)
 
 
-def task_run_first_step_regression(
-    depends_on=BLD / "data" / "step_one_regression_dataset.pkl",
+def task_run_first_step_regression_eurostat(
+    depends_on=BLD / "data" / "step_one_regression_dataset_eurostat.pkl",
     produces=[
-        BLD / "models" / "first_step_regression.txt",
-        BLD / "data" / "step_one_regression_dataset_output.pkl",
+        BLD / "models" / "first_step_regression_eurostat.txt",
+        BLD / "data" / "step_one_regression_dataset_output_eurostat.pkl",
     ],
 ):
     # Load the data
     data = pd.read_pickle(depends_on)
 
     # Run the regression
-    model = run_first_step_regression(data)
+    model = run_first_step_regression_eurostat(data)
 
     # Get the summary of the model
     model_summary = model.summary()
@@ -82,16 +207,16 @@ def task_run_first_step_regression(
     data.to_pickle(produces[1])
 
 
-def task_run_second_step_regression(
-    depends_on=BLD / "data" / "step_one_regression_dataset_output.pkl",
+def task_run_second_step_regression_eurostat(
+    depends_on=BLD / "data" / "step_one_regression_dataset_output_eurostat.pkl",
     produces=[
-        BLD / "models" / "second_step_regression.txt",
-        BLD / "data" / "step_two_regression_dataset_output.pkl",
+        BLD / "models" / "second_step_regression_eurostat.txt",
+        BLD / "data" / "step_two_regression_dataset_output_eurostat.pkl",
     ],
 ):
     data = pd.read_pickle(depends_on)
 
-    model = run_second_step_regression(data)
+    model = run_second_step_regression_eurostat(data)
 
     model_summary = model.summary()
 
@@ -104,12 +229,12 @@ def task_run_second_step_regression(
 
 
 def task_run_third_step_regression(
-    depends_on=BLD / "data" / "step_two_regression_dataset_output.pkl",
+    depends_on=BLD / "data" / "step_two_regression_dataset_output_eurostat.pkl",
     produces=BLD / "models" / "third_step_regression.txt",
 ):
     data = pd.read_pickle(depends_on)
 
-    model = run_third_step_regression(data)
+    model = run_third_step_regression_eurostat(data)
 
     model_summary = model.summary()
 
@@ -118,7 +243,7 @@ def task_run_third_step_regression(
 
 
 def task_plot_sentiment_index_vs_bond_yield(
-    depends_on=BLD / "data" / "step_one_regression_dataset.pkl",
+    depends_on=BLD / "data" / "step_one_regression_dataset_eurostat.pkl",
     produces=BLD / "figures" / "sentiment_index_vs_bond_yield.png",
 ):
     # Load the data

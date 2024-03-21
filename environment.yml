@@ -27,4 +27,5 @@ dependencies:
   - matplotlib
   - openpyxl
   - seaborn
-  - pip: [-e ., kaleido, pdbp, spacy, regex]
+  - pandasdmx
+  - pip: [-e ., kaleido, pdbp, spacy, regex, fredapi]
