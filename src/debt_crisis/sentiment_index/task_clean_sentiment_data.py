@@ -13,6 +13,7 @@ from debt_crisis.sentiment_index.clean_sentiment_data import (
     create_sentiment_dictionary_for_lookups,
     create_country_sentiment_index_for_one_transcript_and_print_transcript_number,
     calculate_loughlan_mcdonald_sentiment_index,
+    create_word_count_dictionary,
 )
 
 
@@ -167,39 +168,57 @@ def task_combine_all_transcripts_into_initial_dataframe(
 
 #     sentiment_index_data.to_pickle(produces)
 
-# task_clean_transcript_data_step_2_dependencies = {
-#     "df_transcripts_step_1" : BLD / "data" / "df_transcripts_clean_step_1.pkl",
-#     "sentiment_dictionary" : BLD / "data" / "sentiment_dictionary_lookup.pickle",
-#     "country_names_file" : SRC / "data" / "country_names" / "country_names.xlsx",
-#     "words_environment" : 20
-# }
+task_clean_transcript_data_step_2_dependencies = {
+    "df_transcripts_step_1": BLD / "data" / "df_transcripts_clean_step_1.pkl",
+    "sentiment_dictionary": BLD / "data" / "sentiment_dictionary_lookup.pickle",
+    "country_names_file": SRC / "data" / "country_names" / "country_names.xlsx",
+    "words_environment": 20,
+}
 
 
-# @pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")
-# def task_clean_transcript_data_step_2(
-#     depends_on=task_clean_transcript_data_step_2_dependencies,
-#     countries_under_study=COUNTRIES_UNDER_STUDY,
-#     produces=BLD / "data" / "df_transcripts_clean_step_2.pkl"):
+@pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")
+def task_clean_transcript_data_step_2(
+    depends_on=task_clean_transcript_data_step_2_dependencies,
+    countries_under_study=COUNTRIES_UNDER_STUDY,
+    produces=[
+        BLD / "data" / "df_transcripts_clean_step_2.pkl",
+        BLD / "data" / "filled_word_count_dict.pkl",
+    ],
+):
+    # Load Data
+    cleaned_data = pd.read_pickle(depends_on["df_transcripts_step_1"])
+    lookup_dict = pickle.load(open(depends_on["sentiment_dictionary"], "rb"))
+    word_count_dict = create_word_count_dictionary(lookup_dict)
+    country_names_file = pd.read_excel(depends_on["country_names_file"])
+    words_environment = depends_on["words_environment"]
 
-#     #Load Data
-#     cleaned_data = pd.read_pickle(depends_on["df_transcripts_step_1"])
-#     lookup_dict = pickle.load(open(depends_on["sentiment_dictionary"], "rb"))
-#     country_names_file = pd.read_excel(depends_on["country_names_file"])
-#     words_environment = depends_on["words_environment"]
+    for country in countries_under_study:
+        print(country)
 
-#     for country in countries_under_study:
-#         print(country)
+        # Initialize Row counter
+        create_country_sentiment_index_for_one_transcript_and_print_transcript_number.row_counter = (
+            0
+        )
 
-#         #Initialize Row counter
-#         create_country_sentiment_index_for_one_transcript_and_print_transcript_number.row_counter = 0
+        # Make Sentiment Index
+        cleaned_data[f"Sentiment_Index_McDonald_{country}"] = cleaned_data[
+            "Preprocessed_Transcript_Step_1"
+        ].apply(
+            lambda x: create_country_sentiment_index_for_one_transcript_and_print_transcript_number(
+                x,
+                lookup_dict,
+                words_environment,
+                country,
+                country_names_file,
+                word_count_dict,
+            )
+        )
 
-#         #Make Sentiment Index
-#         cleaned_data[f"Sentiment_Index_McDonald_{country}"] = cleaned_data["Preprocessed_Transcript_Step_1"].apply(
-#         lambda x: create_country_sentiment_index_for_one_transcript_and_print_transcript_number(
-#             x, lookup_dict, words_environment, country, country_names_file
-#         ))
+    cleaned_data.to_pickle(produces[0])
 
-#     cleaned_data.to_pickle(produces)
+    word_count_df = pd.DataFrame.from_dict(word_count_dict, orient="index")
+    word_count_df = word_count_df.transpose().rename_axis("Keys").reset_index()
+    word_count_df.to_pickle(produces[1])
 
 
 # @pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")

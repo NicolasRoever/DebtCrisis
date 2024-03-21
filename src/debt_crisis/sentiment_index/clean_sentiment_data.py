@@ -198,8 +198,21 @@ def create_sentiment_dictionary_for_lookups(cleaned_data):
     return word_sentiment_dict
 
 
+def create_word_count_dictionary(sentiment_dict):
+    """This function takes in a cleaned sentiment dictionary and returns a dictionary
+    with the word as key and 0 as the value."""
+
+    word_count_dict = {word: 0 for word in sentiment_dict}
+    return word_count_dict
+
+
 def create_country_sentiment_index_for_one_transcript_and_print_transcript_number(
-    transcript, lookup_dict, words_environment, country, country_names_file
+    transcript,
+    lookup_dict,
+    words_environment,
+    country,
+    country_names_file,
+    word_count_dict,
 ):
     print(
         f"Processing row {create_country_sentiment_index_for_one_transcript_and_print_transcript_number.row_counter}"
@@ -208,12 +221,22 @@ def create_country_sentiment_index_for_one_transcript_and_print_transcript_numbe
         1
     )
     return create_country_sentiment_index_for_one_transcript(
-        transcript, lookup_dict, words_environment, country, country_names_file
+        transcript,
+        lookup_dict,
+        words_environment,
+        country,
+        country_names_file,
+        word_count_dict,
     )
 
 
 def create_country_sentiment_index_for_one_transcript(
-    transcript, lookup_dict, words_environment, country, country_names_file
+    transcript,
+    lookup_dict,
+    words_environment,
+    country,
+    country_names_file,
+    word_count_dict,
 ):
     """This function takes in an earnings call transcript and a lookup dictionary and
     returns a sentiment index for the transcript. The sentiment index is calculated as
@@ -224,6 +247,7 @@ def create_country_sentiment_index_for_one_transcript(
         words_envirnoment (int): number of words before and after the country to consider
         country (str): country to consider
         country_names_file (pd.Dataframe): file with the names of the countries
+        word_count_dict (dict): dictionary where we store the number of occurence of the word
 
     Returns: int: Sentiment index for the transcript
 
@@ -256,6 +280,7 @@ def create_country_sentiment_index_for_one_transcript(
         for word in context_words:
             if word in lookup_dict:
                 sentiment_index += lookup_dict[word]
+                word_count_dict[word] += 1  # This adds one to the count dictionary
 
     return sentiment_index
 
