@@ -24,3 +24,15 @@ def _check_dataframe_rows(df: pd.DataFrame, num_rows: int):
         raise ValueError(
             msg,
         )
+
+
+def check_if_dataframe_column_is_datetime_type(data_column):
+    if not pd.api.types.is_datetime64_any_dtype(data_column):
+        raise ValueError("The 'Date' column must be of datetime type.")
+
+
+def _check_for_missing_values_in_dataframe_column(data, column_name):
+    if data[column_name].isnull().any():
+        raise ValueError(
+            f"The DataFrame has missing values in the {column_name} column."
+        )

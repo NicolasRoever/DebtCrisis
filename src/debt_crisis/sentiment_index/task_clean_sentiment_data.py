@@ -4,7 +4,13 @@ import pytask
 import matplotlib.pyplot as plt
 import pickle
 
-from debt_crisis.config import BLD, SRC, NO_LONG_RUNNING_TASKS, COUNTRIES_UNDER_STUDY
+from debt_crisis.config import (
+    BLD,
+    SRC,
+    NO_LONG_RUNNING_TASKS,
+    COUNTRIES_UNDER_STUDY,
+    SENTIMENT_INDEX_CALCULATION,
+)
 from debt_crisis.sentiment_index.clean_sentiment_data import (
     combine_all_transcripts_into_dataframe,
     clean_transcript_data_df,
@@ -43,10 +49,15 @@ def task_plot_histogram_negative_words(
 
 def task_create_loughlan_mcdonald_dictionary_for_lookup(
     depends_on=BLD / "data" / "sentiment_dictionary_clean.pkl",
-    produces=BLD / "data" / "sentiment_dictionary_lookup.pickle",
+    calculation_method=SENTIMENT_INDEX_CALCULATION,
+    produces=BLD
+    / "data"
+    / f"sentiment_dictionary_lookup_{SENTIMENT_INDEX_CALCULATION}.pickle",
 ):
     cleaned_data = pd.read_pickle(depends_on)
-    word_sentiment_dict = create_sentiment_dictionary_for_lookups(cleaned_data)
+    word_sentiment_dict = create_sentiment_dictionary_for_lookups(
+        cleaned_data, calculation_method
+    )
     # Exporting to a file using pickle
     with open(produces, "wb") as f:
         pickle.dump(word_sentiment_dict, f)
@@ -170,7 +181,9 @@ def task_combine_all_transcripts_into_initial_dataframe(
 
 task_clean_transcript_data_step_2_dependencies = {
     "df_transcripts_step_1": BLD / "data" / "df_transcripts_clean_step_1.pkl",
-    "sentiment_dictionary": BLD / "data" / "sentiment_dictionary_lookup.pickle",
+    "sentiment_dictionary": BLD
+    / "data"
+    / "sentiment_dictionary_lookup_{SENTIMENT_INDEX_CALCULATION}.pickle",
     "country_names_file": SRC / "data" / "country_names" / "country_names.xlsx",
     "words_environment": 20,
 }

@@ -1,5 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from pytask import task
+import numpy as np
 
 from debt_crisis.regression_analysis.regression_analysis import (
     create_dataset_step_one_regression_eurostat_data,
@@ -7,12 +9,226 @@ from debt_crisis.regression_analysis.regression_analysis import (
     run_second_step_regression_eurostat,
     run_third_step_regression_eurostat,
     create_dataset_step_one_regression_quarterly_data,
-    run_step_one_regression_quarterly_data,
     run_step_two_regression_quarterly_data,
     run_step_three_regression_quarterly_data,
+    create_data_set_event_study,
+    run_event_study_regression,
+    plot_event_study_coefficients,
+    plot_event_study_coefficients_for_multiple_countries_in_one_plot,
+    run_exuberance_index_regression_quarterly_data,
+    merge_event_study_coefficients_and_exuberance_index_data,
+    run_regression_exuberance_indicator_vs_event_study_coefficients_for_all_countries,
+    plot_fitted_values_from_exuberance_unfounded_bond_yield_regression,
 )
 
-from debt_crisis.config import BLD
+from debt_crisis.config import (
+    BLD,
+    EVENT_STUDY_COUNTRIES,
+    EVENT_STUDY_TIME_PERIOD,
+    TOP_LEVEL_DIR,
+)
+
+
+task_create_event_study_dataset_dependencies = {
+    "quarterly_macro_data": BLD
+    / "data"
+    / "financial_data"
+    / "Quarterly Macroeconomic Variables_cleaned.pkl",
+    "sentiment_index_data": BLD / "data" / "mcdonald_sentiment_index_cleaned.pkl",
+}
+
+
+def task_create_event_study_dataset(
+    depends_on=task_create_event_study_dataset_dependencies,
+    event_study_countries=EVENT_STUDY_COUNTRIES,
+    event_study_time_period=EVENT_STUDY_TIME_PERIOD,
+    produces=BLD / "data" / "event_study_approach" / "event_study_dataset.pkl",
+):
+    quarterly_macro_data = pd.read_pickle(depends_on["quarterly_macro_data"])
+    sentiment_index_data = pd.read_pickle(depends_on["sentiment_index_data"])
+
+    dataset = create_data_set_event_study(
+        quarterly_macro_data,
+        sentiment_index_data,
+        event_study_countries,
+        event_study_time_period=event_study_time_period,
+    )
+
+    dataset.to_pickle(produces)
+
+
+def task_run_bond_yield_event_study(
+    depends_on=BLD / "data" / "event_study_approach" / "event_study_dataset.pkl",
+    event_study_countries=EVENT_STUDY_COUNTRIES,
+    event_study_time_period=EVENT_STUDY_TIME_PERIOD,
+    produces=[
+        BLD / "models" / "event_study_regression.txt",
+        BLD / "data" / "event_study_approach" / "event_study_coefficients_data.pkl",
+    ],
+):
+    data = pd.read_pickle(depends_on)
+
+    model = run_event_study_regression(
+        data, event_study_countries, event_study_time_period
+    )
+
+    model_summary = model.summary()
+
+    with open(produces[0], "w") as file:
+        file.write(model_summary.as_text())
+
+    # Make coefficient data
+
+    coefficient_data = pd.DataFrame()
+
+    coefficient_data["Variable"] = model.params.index
+    coefficient_data["Coefficient"] = model.params.values
+    coefficient_data["Standard Errors"] = model.bse.values
+
+    coefficient_data.to_pickle(
+        BLD / "data" / "event_study_approach" / "event_study_coefficients_data.pkl"
+    )
+
+
+for country in EVENT_STUDY_COUNTRIES:
+
+    @task(id=country)
+    def task_plot_event_study_coefficients(
+        depends_on=BLD
+        / "data"
+        / "event_study_approach"
+        / "event_study_coefficients_data.pkl",
+        country=country,
+        produces=BLD
+        / "figures"
+        / "event_study"
+        / f"event_study_coefficients_{country}.png",
+    ):
+        data = pd.read_pickle(depends_on)
+
+        figure = plot_event_study_coefficients(data, country)
+
+        figure.savefig(produces)
+
+
+def task_plot_event_study_coefficients_for_all_countries_in_one_plot(
+    depends_on=BLD
+    / "data"
+    / "event_study_approach"
+    / "event_study_coefficients_data.pkl",
+    countries=["greece", "portugal", "spain", "germany", "italy"],
+    produces=[
+        BLD / "figures" / "event_study" / "event_study_coefficients_all_countries.png",
+        TOP_LEVEL_DIR
+        / "Input_for_Paper"
+        / "figures"
+        / "event_study_coefficients_5_countries.jpeg",
+    ],
+):
+    data = pd.read_pickle(depends_on)
+
+    plot = plot_event_study_coefficients_for_multiple_countries_in_one_plot(
+        data, countries
+    )
+
+    plot.savefig(produces[0])
+    plot.savefig(produces[1])
+
+
+def task_run_exuberance_index_regression_quarterly(
+    depends_on=BLD / "data" / "step_one_regression_dataset_quarterly_data.pkl",
+    produces=[
+        BLD / "models" / "exuberance_index_regression_quarterly.txt",
+        BLD
+        / "data"
+        / "sentiment_exuberance"
+        / "exuberance_index_regression_quarterly.pkl",
+    ],
+):
+    # Load the data
+    data = pd.read_pickle(depends_on).dropna()
+
+    # Run the regression
+    model = run_exuberance_index_regression_quarterly_data(data)
+
+    # Get the summary of the model
+    model_summary = model.summary()
+
+    # Save the summary as a text file
+    with open(produces[0], "w") as file:
+        file.write(model_summary.as_text())
+
+    data["Fitted_Values_Exuberance_Regression"] = model.fittedvalues
+    data["Residuals_Exuberance_Regression"] = model.resid
+
+    data.to_pickle(produces[1])
+
+
+def task_run_regression_event_study_coefficients_vs_exuberance_index(
+    depends_on=[
+        BLD / "data" / "event_study_approach" / "event_study_coefficients_data.pkl",
+        BLD
+        / "data"
+        / "sentiment_exuberance"
+        / "exuberance_index_regression_quarterly.pkl",
+    ],
+    produces=[
+        BLD / "models" / "event_study_coefficients_vs_exuberance_index_regression.csv",
+        TOP_LEVEL_DIR
+        / "Input_for_Paper"
+        / "tables"
+        / "exuberance_vs_event_study_coefficients_regression_summary.tex",
+        BLD
+        / "data"
+        / "exuberance_vs_event_study_coefficients_regression_fitted_values.pkl",
+    ],
+):
+    coefficients_data = pd.read_pickle(depends_on[0])
+    exuberance_data = pd.read_pickle(depends_on[1])
+
+    merged_data = merge_event_study_coefficients_and_exuberance_index_data(
+        coefficients_data, exuberance_data
+    )
+
+    (
+        result,
+        fitted_values,
+    ) = run_regression_exuberance_indicator_vs_event_study_coefficients_for_all_countries(
+        merged_data
+    )
+
+    result["Correlation"] = np.sqrt(result["R_Squared"])
+
+    result.to_csv(produces[0])
+
+    with open(produces[1], "w", encoding="utf-8") as file:
+        file.write(result.to_latex())
+
+    fitted_values.to_pickle(produces[2])
+
+
+def task_plot_fitted_values_from_exuberance_unfounded_bond_yield_regression(
+    depends_on=BLD
+    / "data"
+    / "exuberance_vs_event_study_coefficients_regression_fitted_values.pkl",
+    produces=[
+        BLD
+        / "figures"
+        / "fitted_values_exuberance_unfounded_bond_yield_regression.png",
+        TOP_LEVEL_DIR
+        / "Input_for_Paper"
+        / "figures"
+        / "fitted_values_exuberance_unfounded_bond_yield_regression.png",
+    ],
+):
+    data = pd.read_pickle(depends_on)
+
+    plot = plot_fitted_values_from_exuberance_unfounded_bond_yield_regression(
+        data, ["greece", "portugal", "spain", "italy"]
+    )
+
+    plot.savefig(produces[0])
+    plot.savefig(produces[1])
 
 
 # ------------------------------------------------------------------------------------------
@@ -41,32 +257,6 @@ def task_create_dataset_step_one_regression_quarterly_macro_data(
     )
 
     dataset.to_pickle(produces)
-
-
-def task_run_first_step_regression_quarterly(
-    depends_on=BLD / "data" / "step_one_regression_dataset_quarterly_data.pkl",
-    produces=[
-        BLD / "models" / "first_step_regression_quarterly.txt",
-        BLD / "data" / "step_one_regression_dataset_output_quarterly.pkl",
-    ],
-):
-    # Load the data
-    data = pd.read_pickle(depends_on).dropna()
-
-    # Run the regression
-    model = run_step_one_regression_quarterly_data(data)
-
-    # Get the summary of the model
-    model_summary = model.summary()
-
-    # Save the summary as a text file
-    with open(produces[0], "w") as file:
-        file.write(model_summary.as_text())
-
-    data["Fitted_Values_Step_One_Regression"] = model.fittedvalues
-    data["Residuals_Step_One_Regression"] = model.resid
-
-    data.to_pickle(produces[1])
 
 
 def task_run_second_step_regression_quarterly(

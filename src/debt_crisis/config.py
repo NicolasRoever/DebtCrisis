@@ -5,6 +5,7 @@ import spacy
 
 SRC = Path(__file__).parent.resolve()
 BLD = SRC.joinpath("..", "..", "bld").resolve()
+TOP_LEVEL_DIR = SRC.joinpath("..", "..").resolve()
 
 TEST_DIR = SRC.joinpath("..", "..", "tests").resolve()
 PAPER_DIR = SRC.joinpath("..", "..", "paper").resolve()
@@ -137,8 +138,26 @@ MAPPING_CURRENCY_TO_COUNTRY = {
     "ZAR": "South Africa",
 }
 
+EVENT_STUDY_COUNTRIES = [
+    "netherlands",
+    "austria",
+    "italy",
+    "finland",
+    "slovenia",
+    "greece",
+    "portugal",
+    "spain",
+    "germany",
+    "belgium",
+    "ireland",
+    "france",
+]
+
+EVENT_STUDY_TIME_PERIOD = ["2008Q1", "2014Q1"]
 
 NO_LONG_RUNNING_TASKS = True
+
+SENTIMENT_INDEX_CALCULATION = "only_negatives"
 
 
 FRED_API_KEY = "a6c090d9708fcd388e74204168cc7f43"

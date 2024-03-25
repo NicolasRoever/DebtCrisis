@@ -1,12 +1,15 @@
 from debt_crisis.sentiment_index.validate_sentiment_index import (
     clean_sentiment_count_data,
     plot_actual_word_frequency,
+    plot_sentiment_index_and_bond_yield_spread_for_country,
+    plot_sentiment_index_and_exuberance_index_for_country,
 )
 
-from debt_crisis.config import BLD
+from debt_crisis.config import BLD, TOP_LEVEL_DIR
 
 import pandas as pd
 import numpy as np
+from pytask import task
 
 
 task_clean_sentiment_word_count_data_dependencies = {
@@ -48,6 +51,59 @@ def task_plot_empirical_word_frequency(
 
     positive_plot.savefig(produces[0])
     negative_plot.savefig(produces[1])
+
+
+for country in ["portugal", "greece"]:
+
+    @task(id=country)
+    def task_plot_sentiment_and_exuberance_index_for_country(
+        depends_on=BLD
+        / "data"
+        / "sentiment_exuberance"
+        / "exuberance_index_regression_quarterly.pkl",
+        country=country,
+        produces=[
+            BLD
+            / "figures"
+            / "sentiment_index"
+            / f"sentiment_exuberance_index_{country}.png",
+            TOP_LEVEL_DIR
+            / "Input_for_Paper"
+            / "figures"
+            / f"sentiment_exuberance_index_{country}.png",
+        ],
+    ):
+        data = pd.read_pickle(depends_on)
+
+        plot = plot_sentiment_index_and_exuberance_index_for_country(data, country)
+
+        plot.savefig(produces[0])
+        plot.savefig(produces[1])
+
+
+for country in ["portugal", "greece"]:
+
+    @task(id=country)
+    def task_plot_sentiment_index_and_bond_yield_spread_for_country(
+        depends_on=BLD / "data" / "event_study_approach" / "event_study_dataset.pkl",
+        country=country,
+        produces=[
+            BLD
+            / "figures"
+            / "sentiment_index"
+            / f"sentiment_index_and_bond_yield{country}.png",
+            TOP_LEVEL_DIR
+            / "Input_for_Paper"
+            / "figures"
+            / f"sentiment_index_and_bond_yield_spread{country}.png",
+        ],
+    ):
+        data = pd.read_pickle(depends_on)
+
+        plot = plot_sentiment_index_and_bond_yield_spread_for_country(data, country)
+
+        plot.savefig(produces[0])
+        plot.savefig(produces[1])
 
 
 # def task_create_empty_dataframe(

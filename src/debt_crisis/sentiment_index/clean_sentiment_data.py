@@ -178,9 +178,16 @@ def clean_sentiment_dictionary_data(raw_data):
     return cleaned_data
 
 
-def create_sentiment_dictionary_for_lookups(cleaned_data):
+def create_sentiment_dictionary_for_lookups(
+    cleaned_data, method="negative_and_positive"
+):
     """THis function takes in a cleaned sentiment dictionary and returns a dictionary
-    with the word as key and the sentiment value as value."""
+    with the word as key and the sentiment value as value.
+
+    Args: cleaned_data (pd.DataFrame): Cleaned sentiment dictionary
+        method (str): Method to use for sentiment calculation. Default is None, 'only_negative' or 'negative_and_positive' can be used
+
+    """
 
     word_sentiment_dict = {}  # Dictionary to store word sentiment values
 
@@ -189,8 +196,11 @@ def create_sentiment_dictionary_for_lookups(cleaned_data):
         positive = row["Positive_Indicator"]
         negative = row["Negative_Indicator"]
 
-        # Calculate the value as positive - negative for the word
-        sentiment_value = positive - negative
+        if method == "negative_and_positive":
+            sentiment_value = positive - negative
+
+        if method == "only_negative":
+            sentiment_value = negative
 
         # Store the sentiment value in the dictionary
         word_sentiment_dict[word] = sentiment_value
