@@ -36,3 +36,11 @@ def _check_for_missing_values_in_dataframe_column(data, column_name):
         raise ValueError(
             f"The DataFrame has missing values in the {column_name} column."
         )
+
+
+def _name_sentiment_index_output_file(name, configuration_settings, suffix):
+    """Create a name for the sentiment index output file."""
+
+    file_name = f"{name}_{configuration_settings['sentiment_index_calculation_method']}_{configuration_settings['words_in_environment']}_{suffix}"
+
+    return file_name

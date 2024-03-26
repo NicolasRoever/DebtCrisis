@@ -178,9 +178,7 @@ def clean_sentiment_dictionary_data(raw_data):
     return cleaned_data
 
 
-def create_sentiment_dictionary_for_lookups(
-    cleaned_data, method="negative_and_positive"
-):
+def create_sentiment_dictionary_for_lookups(cleaned_data):
     """THis function takes in a cleaned sentiment dictionary and returns a dictionary
     with the word as key and the sentiment value as value.
 
@@ -196,11 +194,7 @@ def create_sentiment_dictionary_for_lookups(
         positive = row["Positive_Indicator"]
         negative = row["Negative_Indicator"]
 
-        if method == "negative_and_positive":
-            sentiment_value = positive - negative
-
-        if method == "only_negative":
-            sentiment_value = negative
+        sentiment_value = positive - negative
 
         # Store the sentiment value in the dictionary
         word_sentiment_dict[word] = sentiment_value
@@ -247,6 +241,7 @@ def create_country_sentiment_index_for_one_transcript(
     country,
     country_names_file,
     word_count_dict,
+    calculation_method="negative_and_positive",
 ):
     """This function takes in an earnings call transcript and a lookup dictionary and
     returns a sentiment index for the transcript. The sentiment index is calculated as
@@ -287,10 +282,17 @@ def create_country_sentiment_index_for_one_transcript(
         end = min(len(transcript), index + words_environment)
         context_words = transcript_words[start:end]
 
-        for word in context_words:
-            if word in lookup_dict:
-                sentiment_index += lookup_dict[word]
-                word_count_dict[word] += 1  # This adds one to the count dictionary
+        if calculation_method == "negative_and_positive":
+            for word in context_words:
+                if word in lookup_dict:
+                    sentiment_index += lookup_dict[word]
+                    word_count_dict[word] += 1  # This adds one to the count dictionary
+
+        if calculation_method == "only_negatives":
+            for word in context_words:
+                if word in lookup_dict and lookup_dict[word] < 0:
+                    sentiment_index += lookup_dict[word]
+                    word_count_dict[word] += 1
 
     return sentiment_index
 

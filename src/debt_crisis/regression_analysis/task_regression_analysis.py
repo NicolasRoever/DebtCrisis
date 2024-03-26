@@ -26,7 +26,11 @@ from debt_crisis.config import (
     EVENT_STUDY_COUNTRIES,
     EVENT_STUDY_TIME_PERIOD,
     TOP_LEVEL_DIR,
+    CONFIGURATION_SETTINGS,
+    EVENT_STUDY_PLOT_COUNTRIES,
 )
+
+from debt_crisis.utilities import _name_sentiment_index_output_file
 
 
 task_create_event_study_dataset_dependencies = {
@@ -34,7 +38,11 @@ task_create_event_study_dataset_dependencies = {
     / "data"
     / "financial_data"
     / "Quarterly Macroeconomic Variables_cleaned.pkl",
-    "sentiment_index_data": BLD / "data" / "mcdonald_sentiment_index_cleaned.pkl",
+    "sentiment_index_data": BLD
+    / "data"
+    / _name_sentiment_index_output_file(
+        "mcdonald_sentiment_index_cleaned", CONFIGURATION_SETTINGS, ".pkl"
+    ),
 }
 
 
@@ -42,7 +50,12 @@ def task_create_event_study_dataset(
     depends_on=task_create_event_study_dataset_dependencies,
     event_study_countries=EVENT_STUDY_COUNTRIES,
     event_study_time_period=EVENT_STUDY_TIME_PERIOD,
-    produces=BLD / "data" / "event_study_approach" / "event_study_dataset.pkl",
+    produces=BLD
+    / "data"
+    / "event_study_approach"
+    / _name_sentiment_index_output_file(
+        "event_study_dataset", CONFIGURATION_SETTINGS, ".pkl"
+    ),
 ):
     quarterly_macro_data = pd.read_pickle(depends_on["quarterly_macro_data"])
     sentiment_index_data = pd.read_pickle(depends_on["sentiment_index_data"])
@@ -62,8 +75,17 @@ def task_run_bond_yield_event_study(
     event_study_countries=EVENT_STUDY_COUNTRIES,
     event_study_time_period=EVENT_STUDY_TIME_PERIOD,
     produces=[
-        BLD / "models" / "event_study_regression.txt",
-        BLD / "data" / "event_study_approach" / "event_study_coefficients_data.pkl",
+        BLD
+        / "models"
+        / _name_sentiment_index_output_file(
+            "event_study_regression", CONFIGURATION_SETTINGS, ".txt"
+        ),
+        BLD
+        / "data"
+        / "event_study_approach"
+        / _name_sentiment_index_output_file(
+            "event_study_coefficients_data", CONFIGURATION_SETTINGS, ".pkl"
+        ),
     ],
 ):
     data = pd.read_pickle(depends_on)
@@ -85,9 +107,40 @@ def task_run_bond_yield_event_study(
     coefficient_data["Coefficient"] = model.params.values
     coefficient_data["Standard Errors"] = model.bse.values
 
-    coefficient_data.to_pickle(
-        BLD / "data" / "event_study_approach" / "event_study_coefficients_data.pkl"
-    )
+    coefficient_data.to_pickle(produces[1])
+
+
+for index, country_list in enumerate(EVENT_STUDY_PLOT_COUNTRIES):
+    plot_number = index + 1
+
+    @task(id=str(index))
+    def task_plot_event_study_coefficients_for_all_countries_in_one_plot(
+        depends_on=BLD
+        / "data"
+        / "event_study_approach"
+        / _name_sentiment_index_output_file(
+            "event_study_coefficients_data", CONFIGURATION_SETTINGS, ".pkl"
+        ),
+        countries=country_list,
+        produces=[
+            BLD
+            / "figures"
+            / "event_study"
+            / f"event_study_coefficients_{plot_number}.png",
+            TOP_LEVEL_DIR
+            / "Input_for_Paper"
+            / "figures"
+            / f"event_study_coefficients_{plot_number}.png",
+        ],
+    ):
+        data = pd.read_pickle(depends_on)
+
+        plot = plot_event_study_coefficients_for_multiple_countries_in_one_plot(
+            data, countries
+        )
+
+        plot.savefig(produces[0])
+        plot.savefig(produces[1])
 
 
 for country in EVENT_STUDY_COUNTRIES:
@@ -97,42 +150,22 @@ for country in EVENT_STUDY_COUNTRIES:
         depends_on=BLD
         / "data"
         / "event_study_approach"
-        / "event_study_coefficients_data.pkl",
+        / _name_sentiment_index_output_file(
+            "event_study_coefficients_data", CONFIGURATION_SETTINGS, ".pkl"
+        ),
         country=country,
         produces=BLD
         / "figures"
         / "event_study"
-        / f"event_study_coefficients_{country}.png",
+        / _name_sentiment_index_output_file(
+            f"event_study_coefficients_{country}", CONFIGURATION_SETTINGS, ".png"
+        ),
     ):
         data = pd.read_pickle(depends_on)
 
         figure = plot_event_study_coefficients(data, country)
 
         figure.savefig(produces)
-
-
-def task_plot_event_study_coefficients_for_all_countries_in_one_plot(
-    depends_on=BLD
-    / "data"
-    / "event_study_approach"
-    / "event_study_coefficients_data.pkl",
-    countries=["greece", "portugal", "spain", "germany", "italy"],
-    produces=[
-        BLD / "figures" / "event_study" / "event_study_coefficients_all_countries.png",
-        TOP_LEVEL_DIR
-        / "Input_for_Paper"
-        / "figures"
-        / "event_study_coefficients_5_countries.jpeg",
-    ],
-):
-    data = pd.read_pickle(depends_on)
-
-    plot = plot_event_study_coefficients_for_multiple_countries_in_one_plot(
-        data, countries
-    )
-
-    plot.savefig(produces[0])
-    plot.savefig(produces[1])
 
 
 def task_run_exuberance_index_regression_quarterly(
@@ -166,7 +199,12 @@ def task_run_exuberance_index_regression_quarterly(
 
 def task_run_regression_event_study_coefficients_vs_exuberance_index(
     depends_on=[
-        BLD / "data" / "event_study_approach" / "event_study_coefficients_data.pkl",
+        BLD
+        / "data"
+        / "event_study_approach"
+        / _name_sentiment_index_output_file(
+            "event_study_coefficients_data", CONFIGURATION_SETTINGS, ".pkl"
+        ),
         BLD
         / "data"
         / "sentiment_exuberance"

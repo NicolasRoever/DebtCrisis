@@ -13,3 +13,30 @@ def plot_time_series_variables_from_different_datasources(
     ax.legend()
 
     return fig
+
+
+def plot_bond_yield_spreads_for_all_countries(data):
+    countries = data["Country"].unique()
+
+    fig = plt.figure()
+
+    for country in countries:
+        country_data = data[data["Country"] == country]
+        plt.plot(country_data["Date"], country_data["Bond_Yield_Spread"], label=country)
+
+    plt.xlabel("Date")
+    plt.ylabel("Bond Yield Spread")
+    plt.legend()
+
+    return fig
+
+
+def plot_bond_yield_for_country(data, country):
+    country_data = data[data["Country"] == country]
+    fig = plt.figure()
+    plt.plot(country_data["Date"], country_data["Bond_Yield_Spread"], label=country)
+    plt.xlabel("Date")
+    plt.ylabel("Bond Yield Spread")
+    plt.legend()
+
+    return fig

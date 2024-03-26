@@ -14,6 +14,7 @@ bld/
 
 #Raw data
 src/debt_crisis/data/
+Input_for_Paper/
 
 # latex
 *.aux

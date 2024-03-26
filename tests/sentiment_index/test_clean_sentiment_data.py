@@ -678,6 +678,7 @@ def test_create_country_sentiment_index_for_one_transcript_case_1():
     test_transcript = r"""austria is a beautiful country in europe. its capital is berlin. the country has a rich history and culture. many people visit the coiuntry for its beautiful landscapes and historic cities. austria, along with france, italy, and spain, is one of the most visited countries in europe."""
 
     lookup_dict = {"beautiful": 1}
+    word_count_dict = {"beautiful": 0, "historic": 0}
 
     country = "austria"
 
@@ -701,6 +702,7 @@ def test_create_country_sentiment_index_for_one_transcript_case_1():
         country=country,
         words_environment=words_environment,
         country_names_file=country_names_file,
+        word_count_dict=word_count_dict,
     )
 
     assert expected_output == actual_output
@@ -712,6 +714,8 @@ def test_create_country_sentiment_index_for_one_transcript_case_2():
   """
 
     lookup_dict = {"beautiful": 1, "historic": -1}
+
+    word_count_dict = {"beautiful": 0, "historic": 0}
 
     country = "austria"
 
@@ -735,6 +739,7 @@ def test_create_country_sentiment_index_for_one_transcript_case_2():
         country=country,
         words_environment=words_environment,
         country_names_file=country_names_file,
+        word_count_dict=word_count_dict,
     )
 
     assert expected_output == actual_output
@@ -753,6 +758,44 @@ def test_get_country_appearance_index_from_transcript_text():
     )
 
     assert actual_indices == expected_indices
+
+
+def test_create_country_sentiment_index_for_one_transcript_only_negatives():
+    test_transcript = r"""
+    austria is a beautiful country in europe. its capital is berlin. the country has a rich history and culture. many people visit the coiuntry for its beautiful landscapes and historic cities. austria, along with france, italy, and spain, is one of the most visited countries in europe.
+    """
+
+    lookup_dict = {"beautiful": 1, "historic": -1}
+
+    word_count_dict = {"beautiful": 0, "historic": 0}
+
+    country = "austria"
+
+    words_environment = 4
+
+    country_names_file = pd.DataFrame(
+        {
+            "name": ["austria", "germany"],
+            "adjectival": ["austrian", "german"],
+            "demonymic": ["austrians", "germans"],
+            "capital": ["vienna", "berlin"],
+            "other": [None, None],
+        }
+    )
+
+    expected_output = -1
+
+    actual_output = create_country_sentiment_index_for_one_transcript(
+        transcript=test_transcript,
+        lookup_dict=lookup_dict,
+        country=country,
+        words_environment=words_environment,
+        country_names_file=country_names_file,
+        word_count_dict=word_count_dict,
+        calculation_method="only_negatives",
+    )
+
+    assert expected_output == actual_output
 
 
 def test_calculate_loughlan_mcdonald_sentiment_index():

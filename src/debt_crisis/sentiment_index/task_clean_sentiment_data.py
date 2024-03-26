@@ -9,7 +9,7 @@ from debt_crisis.config import (
     SRC,
     NO_LONG_RUNNING_TASKS,
     COUNTRIES_UNDER_STUDY,
-    SENTIMENT_INDEX_CALCULATION,
+    CONFIGURATION_SETTINGS,
 )
 from debt_crisis.sentiment_index.clean_sentiment_data import (
     combine_all_transcripts_into_dataframe,
@@ -21,6 +21,8 @@ from debt_crisis.sentiment_index.clean_sentiment_data import (
     calculate_loughlan_mcdonald_sentiment_index,
     create_word_count_dictionary,
 )
+
+from debt_crisis.utilities import _name_sentiment_index_output_file
 
 
 def task_clean_sentiment_dictionary(
@@ -49,23 +51,26 @@ def task_plot_histogram_negative_words(
 
 def task_create_loughlan_mcdonald_dictionary_for_lookup(
     depends_on=BLD / "data" / "sentiment_dictionary_clean.pkl",
-    calculation_method=SENTIMENT_INDEX_CALCULATION,
-    produces=BLD
-    / "data"
-    / f"sentiment_dictionary_lookup_{SENTIMENT_INDEX_CALCULATION}.pickle",
+    produces=BLD / "data" / "sentiment_dictionary_lookup.pkl",
 ):
     cleaned_data = pd.read_pickle(depends_on)
-    word_sentiment_dict = create_sentiment_dictionary_for_lookups(
-        cleaned_data, calculation_method
-    )
+    word_sentiment_dict = create_sentiment_dictionary_for_lookups(cleaned_data)
     # Exporting to a file using pickle
     with open(produces, "wb") as f:
         pickle.dump(word_sentiment_dict, f)
 
 
 def task_clean_McDonald_sentiment_index(
-    depends_on=BLD / "data" / "mcdonald_sentiment_index.pkl",
-    produces=BLD / "data" / "mcdonald_sentiment_index_cleaned.pkl",
+    depends_on=BLD
+    / "data"
+    / _name_sentiment_index_output_file(
+        "mcdonald_sentiment_index", CONFIGURATION_SETTINGS, ".pkl"
+    ),
+    produces=BLD
+    / "data"
+    / _name_sentiment_index_output_file(
+        "mcdonald_sentiment_index_cleaned", CONFIGURATION_SETTINGS, ".pkl"
+    ),
 ):
     df = pd.read_pickle(depends_on)
     cleaned_data = df.melt(
@@ -140,7 +145,7 @@ for country in COUNTRIES_UNDER_STUDY:
         plt.plot(
             df.index,
             df[f"Sentiment_Index_McDonald_{country}"],
-            label="Cumulative SUm / Earnings Calls last 3 Months",
+            label="Cumulative Sum / Earnings Calls last 3 Months",
         )
         plt.xlabel("Date")
         plt.ylabel("Sentiment Index")
@@ -159,7 +164,7 @@ for country in COUNTRIES_UNDER_STUDY:
 def task_combine_all_transcripts_into_initial_dataframe(
     data_directory=str(
         SRC / "data" / "transcripts" / "raw" / "Eikon 2002 - 2022",
-    ),  # This should be fixed !!!
+    ),
     produces=BLD / "data" / "df_transcripts_raw.pkl",
 ):
     full_dataframe = combine_all_transcripts_into_dataframe(data_directory)
@@ -167,23 +172,30 @@ def task_combine_all_transcripts_into_initial_dataframe(
     full_dataframe.to_pickle(produces)
 
 
-# @pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")
-# def task_calculate_McDonald_sentiment_index(
-#     depends_on=BLD / "data" / "df_transcripts_clean_step_2.pkl",
-#     countries = COUNTRIES_UNDER_STUDY,
-#     produces=BLD / "data" / "mcdonald_sentiment_index.pkl"):
+@pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")
+def task_calculate_McDonald_sentiment_index(
+    depends_on=BLD
+    / "data"
+    / _name_sentiment_index_output_file(
+        "df_transcripts_clean_step_2", CONFIGURATION_SETTINGS, ".pkl"
+    ),
+    countries=COUNTRIES_UNDER_STUDY,
+    produces=BLD
+    / "data"
+    / _name_sentiment_index_output_file(
+        "mcdonald_sentiment_index", CONFIGURATION_SETTINGS, ".pkl"
+    ),
+):
+    df = pd.read_pickle(depends_on)
 
-#     df = pd.read_pickle(depends_on)
+    sentiment_index_data = calculate_loughlan_mcdonald_sentiment_index(df, countries)
 
-#     sentiment_index_data = calculate_loughlan_mcdonald_sentiment_index(df, countries)
+    sentiment_index_data.to_pickle(produces)
 
-#     sentiment_index_data.to_pickle(produces)
 
 task_clean_transcript_data_step_2_dependencies = {
     "df_transcripts_step_1": BLD / "data" / "df_transcripts_clean_step_1.pkl",
-    "sentiment_dictionary": BLD
-    / "data"
-    / "sentiment_dictionary_lookup_{SENTIMENT_INDEX_CALCULATION}.pickle",
+    "sentiment_dictionary": BLD / "data" / "sentiment_dictionary_lookup.pkl",
     "country_names_file": SRC / "data" / "country_names" / "country_names.xlsx",
     "words_environment": 20,
 }
@@ -194,8 +206,16 @@ def task_clean_transcript_data_step_2(
     depends_on=task_clean_transcript_data_step_2_dependencies,
     countries_under_study=COUNTRIES_UNDER_STUDY,
     produces=[
-        BLD / "data" / "df_transcripts_clean_step_2.pkl",
-        BLD / "data" / "filled_word_count_dict.pkl",
+        BLD
+        / "data"
+        / _name_sentiment_index_output_file(
+            "df_transcripts_clean_step_2", CONFIGURATION_SETTINGS, ".pkl"
+        ),
+        BLD
+        / "data"
+        / _name_sentiment_index_output_file(
+            "filled_word_count_dict", CONFIGURATION_SETTINGS, ".pkl"
+        ),
     ],
 ):
     # Load Data

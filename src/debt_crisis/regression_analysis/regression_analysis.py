@@ -116,10 +116,8 @@ def run_event_study_regression(data, event_study_countries, event_study_time_per
     create_data_set_event_study function."""
 
     formula = (
-        "Bond_Yield_Spread ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + Q('3_Month_US_Treasury_Yield_Quarterly_Mean') + "
-        "GDP_in_Current_Prices_Growth_Lead + Current_Account_in_USD +  "
-        "VIX_Daily_Close_Quarterly_Mean + "
-        "NASDAQ_Daily_Close_Quarterly_Mean  + "
+        "Q('10y_Maturity_Bond_Yield') ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + "
+        "VIX_Daily_Close_Quarterly_Mean + Q('10y_Maturity_Bond_Yield_US') + C(Country) + C(Date) +"
         + " + ".join(
             [
                 f"Dummy_{country}_{quarter}"
@@ -133,8 +131,29 @@ def run_event_study_regression(data, event_study_countries, event_study_time_per
         )
     )
 
+    # Drop all NA values and the US
+    columns_in_the_model = [
+        "10y_Maturity_Bond_Yield",
+        "Public_Debt_as_%_of_GDP",
+        "GDP_in_Current_Prices_Growth",
+        "VIX_Daily_Close_Quarterly_Mean",
+        "10y_Maturity_Bond_Yield_US",
+        "Country",
+        "Date",
+    ]
+    data_without_us = data.loc[data["Country"] != "usa", :].dropna(
+        subset=columns_in_the_model
+    )
+
+    # Sort the data
+
+    data_without_us = data_without_us.sort_values(by=["Country", "Date"])
+
     # Run the regression
-    model = smf.ols(formula, data=data).fit()
+    model = smf.ols(formula, data=data_without_us).fit(
+        cov_type="hac-panel",
+        cov_kwds={"groups": data_without_us["Country"], "maxlags": 2},
+    )
 
     return model
 
@@ -213,7 +232,7 @@ def plot_event_study_coefficients(
 def plot_event_study_coefficients_for_multiple_countries_in_one_plot(
     raw_regression_output_data,
     countries,
-    color_scheme=["#3c5488", "#e64b35", "#4dbbd5", "#00a087", "#f39b7f"],
+    color_scheme=["#3c5488", "#e64b35", "#4dbbd5", "#00a087", "#f39b7f", "#000000"],
 ):
     """This function plots the coefficients from the event study regression for the
     given countries."""
@@ -228,7 +247,7 @@ def plot_event_study_coefficients_for_multiple_countries_in_one_plot(
     sns.set_style("white")
 
     # Create the plot
-    fig = plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(8, 6))
 
     # Loop over the list of countries
     for i, country in enumerate(countries):
@@ -258,9 +277,8 @@ def plot_event_study_coefficients_for_multiple_countries_in_one_plot(
     plt.axhline(0, color="grey", linestyle=":")
 
     # Set the title and labels
-    plt.title("Coefficients Over Time with Confidence Interval", fontsize=16)
-    plt.xlabel("Date", fontsize=14)
-    plt.ylabel("Coefficient", fontsize=14)
+    plt.xlabel("Time", fontsize=14)
+    plt.ylabel("Event Study Coefficient", fontsize=14)
 
     # Keep only the y-axis and x-axis
     sns.despine(left=False, bottom=False, right=True, top=True)

@@ -3,6 +3,20 @@ from pathlib import Path
 
 import spacy
 
+# -------------Configurations----------------#
+
+EVENT_STUDY_TIME_PERIOD = ["2008Q1", "2014Q1"]
+
+NO_LONG_RUNNING_TASKS = True
+
+CONFIGURATION_SETTINGS = {
+    "sentiment_index_calculation_method": "negative_and_positive",  # "negative_and_positive" or "negative"
+    "words_in_environment": 20,
+}
+
+
+# -------------Paths----------------#
+
 SRC = Path(__file__).parent.resolve()
 BLD = SRC.joinpath("..", "..", "bld").resolve()
 TOP_LEVEL_DIR = SRC.joinpath("..", "..").resolve()
@@ -24,6 +38,48 @@ QUARTERLY_DATA_PATHS = [
 PATH_TO_TRANSCRIPTS = Path("src/debt_crisis/data/transcripts/raw/Eikon 2002 - 2022/")
 
 RATINGS_DATA_PATH = SRC / "data" / "financial_data" / "ratings"
+
+ALL_COUNTRIES_IN_QUARTERLY_MACRO_DATA = [
+    "colombia",
+    "costa rica",
+    "netherlands",
+    "chile",
+    "latvia",
+    "united kingdom",
+    "denmark",
+    "luxembourg",
+    "austria",
+    "new zealand",
+    "australia",
+    "israel",
+    "italy",
+    "finland",
+    "norway",
+    "slovenia",
+    "lithuania",
+    "india",
+    "slovak republic",
+    "greece",
+    "hungary",
+    "portugal",
+    "iceland",
+    "spain",
+    "germany",
+    "switzerland",
+    "japan",
+    "belgium",
+    "sweden",
+    "canada",
+    "ireland",
+    "usa",
+    "mexico",
+    "france",
+    "russia",
+    "czech republic",
+    "south korea",
+    "south africa",
+    "poland",
+]
 
 COUNTRIES_UNDER_STUDY = [
     "austria",
@@ -143,7 +199,6 @@ EVENT_STUDY_COUNTRIES = [
     "austria",
     "italy",
     "finland",
-    "slovenia",
     "greece",
     "portugal",
     "spain",
@@ -153,11 +208,17 @@ EVENT_STUDY_COUNTRIES = [
     "france",
 ]
 
-EVENT_STUDY_TIME_PERIOD = ["2008Q1", "2014Q1"]
-
-NO_LONG_RUNNING_TASKS = True
-
-SENTIMENT_INDEX_CALCULATION = "only_negatives"
+EVENT_STUDY_PLOT_COUNTRIES = [
+    [
+        "netherlands",
+        "austria",
+        "france",
+        "finland",
+        "germany",
+        "belgium",
+    ],
+    ["greece", "portugal", "spain", "italy", "ireland"],
+]
 
 
 FRED_API_KEY = "a6c090d9708fcd388e74204168cc7f43"
