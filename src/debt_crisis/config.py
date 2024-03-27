@@ -10,7 +10,7 @@ EVENT_STUDY_TIME_PERIOD = ["2008Q1", "2014Q1"]
 NO_LONG_RUNNING_TASKS = True
 
 CONFIGURATION_SETTINGS = {
-    "sentiment_index_calculation_method": "negative_and_positive",  # "negative_and_positive" or "negative"
+    "sentiment_index_calculation_method": "negative",  # "negative_and_positive" or "negative"
     "words_in_environment": 20,
 }
 
@@ -220,6 +220,19 @@ EVENT_STUDY_PLOT_COUNTRIES = [
     ["greece", "portugal", "spain", "italy", "ireland"],
 ]
 
+MAPPING_MOODY_RATING_TO_PD = {
+    "Aaa": 0.02,
+    "Aa": 0.03,
+    "A": 0.07,
+    "Baa": 0.18,
+    "Ba": 0.7,
+    "B": 2.0,
+    "Caa": 14.0,
+    "Ca": 17.0,
+    "C": 20.0,
+    "D": ">20.0",
+}
+
 
 FRED_API_KEY = "a6c090d9708fcd388e74204168cc7f43"
 
@@ -233,3 +246,9 @@ OECD_QUARTERLY_GDP_XML_QUERY_LINK = "https://sdmx.oecd.org/public/rest/data/OECD
 OECD_QUARTERLY_DEBT_AS_PERCENT_GDP_QUERY_LINK = "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NASEC20@DF_T7PSD_Q,1.0/Q....S13.....FD4.T.PT_B1GQ......?dimensionAtObservation=AllDimensions"
 
 OECD_QUARTERLY_CURRENT_ACCOUNT_QUERY_LINK = "https://sdmx.oecd.org/public/rest/data/OECD.SDD.TPS,DSD_BOP@DF_BOP,1.0/..CA.B..Q.USD_EXC.N?dimensionAtObservation=AllDimensions"
+
+LINK_RATINGS = "http://ratingshistory.info"
+
+LINK_RATINGS_2 = "https://www.wikirating.com/data-analytics/"
+
+LINK_RATINGS_3 = "https://github.com/gvschweinitz/ES_18_The-Joint-Dynamics-of-Sovereign-Ratings-and-Government-Bond-Yields/tree/main"

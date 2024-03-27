@@ -128,8 +128,7 @@ def test_generate_long_format_rating_data():
             "Date": pd.to_datetime(
                 ["01.10.10", "13.02.15", "2016-06-24"], format="mixed"
             ),
-            "rating": ["AAA", "AA+", "Aa1"],
-            "source": ["FIS", "FIS", "MIS"],
+            "Rating": ["AAA", "AA+", "Aa1"],
             "Country": ["austria", "austria", "sweden"],
         }
     )
@@ -139,23 +138,19 @@ def test_generate_long_format_rating_data():
 
     df_austria = pd.DataFrame(dates, columns=["Date"])
     df_austria["Country"] = "austria"
-    df_austria["Rating_Letter_MIS"] = np.nan
-    df_austria["Rating_Letter_FIS"] = np.nan
-    df_austria["Rating_Letter_FDL"] = np.nan
+    df_austria["Rating_Letter_Moody"] = np.nan
     df_austria.loc[
-        df_austria["Date"] >= pd.to_datetime("2010-01-10"), "Rating_Letter_FIS"
+        df_austria["Date"] >= pd.to_datetime("2010-01-10"), "Rating_Letter_Moody"
     ] = "AAA"
     df_austria.loc[
-        df_austria["Date"] >= pd.to_datetime("2015-02-13"), "Rating_Letter_FIS"
+        df_austria["Date"] >= pd.to_datetime("2015-02-13"), "Rating_Letter_Moody"
     ] = "AA+"
 
     df_sweden = pd.DataFrame(dates, columns=["Date"])
     df_sweden["Country"] = "sweden"
-    df_sweden["Rating_Letter_MIS"] = np.nan
-    df_sweden["Rating_Letter_FIS"] = np.nan
-    df_sweden["Rating_Letter_FDL"] = np.nan
+    df_sweden["Rating_Letter_Moody"] = np.nan
     df_sweden.loc[
-        df_sweden["Date"] >= pd.to_datetime("2016-06-24"), "Rating_Letter_MIS"
+        df_sweden["Date"] >= pd.to_datetime("2016-06-24"), "Rating_Letter_Moody"
     ] = "Aa1"
 
     expected_output = pd.concat([df_austria, df_sweden], ignore_index=True)

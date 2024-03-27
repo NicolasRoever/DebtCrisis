@@ -5,7 +5,9 @@ from debt_crisis.sentiment_index.validate_sentiment_index import (
     plot_sentiment_index_and_exuberance_index_for_country,
 )
 
-from debt_crisis.config import BLD, TOP_LEVEL_DIR
+from debt_crisis.config import BLD, TOP_LEVEL_DIR, CONFIGURATION_SETTINGS
+
+from debt_crisis.utilities import _name_sentiment_index_output_file
 
 import pandas as pd
 import numpy as np
@@ -85,7 +87,12 @@ for country in ["portugal", "greece"]:
 
     @task(id=country)
     def task_plot_sentiment_index_and_bond_yield_spread_for_country(
-        depends_on=BLD / "data" / "event_study_approach" / "event_study_dataset.pkl",
+        depends_on=BLD
+        / "data"
+        / "event_study_approach"
+        / _name_sentiment_index_output_file(
+            "event_study_dataset", CONFIGURATION_SETTINGS, ".pkl"
+        ),
         country=country,
         produces=[
             BLD

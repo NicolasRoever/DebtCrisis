@@ -1,9 +1,15 @@
-from debt_crisis.config import BLD, ALL_COUNTRIES_IN_QUARTERLY_MACRO_DATA
+from debt_crisis.config import (
+    BLD,
+    ALL_COUNTRIES_IN_QUARTERLY_MACRO_DATA,
+    CONFIGURATION_SETTINGS,
+)
 from debt_crisis.clean_financials.validate_financials import (
     plot_time_series_variables_from_different_datasources,
     plot_bond_yield_spreads_for_all_countries,
     plot_bond_yield_for_country,
 )
+
+from debt_crisis.utilities import _name_sentiment_index_output_file
 import pandas as pd
 from pytask import task
 
@@ -34,7 +40,12 @@ def task_plot_bond_yields_greece_two_datasources(
 
 
 def task_plot_all_bond_yields(
-    depends_on=BLD / "data" / "event_study_approach" / "event_study_dataset.pkl",
+    depends_on=BLD
+    / "data"
+    / "event_study_approach"
+    / _name_sentiment_index_output_file(
+        "event_study_dataset", CONFIGURATION_SETTINGS, ".pkl"
+    ),
     produces=BLD / "figures" / "all_bond_yields.png",
 ):
     data = pd.read_pickle(depends_on)
@@ -48,7 +59,12 @@ for country in ALL_COUNTRIES_IN_QUARTERLY_MACRO_DATA:
 
     @task(id=country)
     def task_plot_bond_yield_for_given_country(
-        depends_on=BLD / "data" / "event_study_approach" / "event_study_dataset.pkl",
+        depends_on=BLD
+        / "data"
+        / "event_study_approach"
+        / _name_sentiment_index_output_file(
+            "event_study_dataset", CONFIGURATION_SETTINGS, ".pkl"
+        ),
         country=country,
         produces=BLD / "figures" / "raw_bond_yields" / f"bond_yield_{country}.png",
     ):

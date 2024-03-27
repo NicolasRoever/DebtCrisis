@@ -19,6 +19,7 @@ from debt_crisis.regression_analysis.regression_analysis import (
     merge_event_study_coefficients_and_exuberance_index_data,
     run_regression_exuberance_indicator_vs_event_study_coefficients_for_all_countries,
     plot_fitted_values_from_exuberance_unfounded_bond_yield_regression,
+    run_exuberance_index_regression_event_study_data,
 )
 
 from debt_crisis.config import (
@@ -31,6 +32,9 @@ from debt_crisis.config import (
 )
 
 from debt_crisis.utilities import _name_sentiment_index_output_file
+
+
+# -----------------Event Study-----------------#
 
 
 task_create_event_study_dataset_dependencies = {
@@ -71,7 +75,12 @@ def task_create_event_study_dataset(
 
 
 def task_run_bond_yield_event_study(
-    depends_on=BLD / "data" / "event_study_approach" / "event_study_dataset.pkl",
+    depends_on=BLD
+    / "data"
+    / "event_study_approach"
+    / _name_sentiment_index_output_file(
+        "event_study_dataset", CONFIGURATION_SETTINGS, ".pkl"
+    ),
     event_study_countries=EVENT_STUDY_COUNTRIES,
     event_study_time_period=EVENT_STUDY_TIME_PERIOD,
     produces=[
@@ -168,21 +177,37 @@ for country in EVENT_STUDY_COUNTRIES:
         figure.savefig(produces)
 
 
-def task_run_exuberance_index_regression_quarterly(
-    depends_on=BLD / "data" / "step_one_regression_dataset_quarterly_data.pkl",
+# -------------------Sentiment Indicator-------------------#
+
+
+def task_run_exuberance_index_regression_with_event_study_data(
+    depends_on=BLD
+    / "data"
+    / "event_study_approach"
+    / _name_sentiment_index_output_file(
+        "event_study_dataset", CONFIGURATION_SETTINGS, ".pkl"
+    ),
     produces=[
-        BLD / "models" / "exuberance_index_regression_quarterly.txt",
+        BLD
+        / "models"
+        / _name_sentiment_index_output_file(
+            "exuberance_index_regression_quarterly", CONFIGURATION_SETTINGS, ".txt"
+        ),
         BLD
         / "data"
         / "sentiment_exuberance"
-        / "exuberance_index_regression_quarterly.pkl",
+        / _name_sentiment_index_output_file(
+            "exuberance_index_regression_event_study_data",
+            CONFIGURATION_SETTINGS,
+            ".pkl",
+        ),
     ],
 ):
     # Load the data
     data = pd.read_pickle(depends_on).dropna()
 
     # Run the regression
-    model = run_exuberance_index_regression_quarterly_data(data)
+    model = run_exuberance_index_regression_event_study_data(data)
 
     # Get the summary of the model
     model_summary = model.summary()

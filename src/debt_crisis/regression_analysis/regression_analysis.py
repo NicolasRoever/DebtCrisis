@@ -116,7 +116,7 @@ def run_event_study_regression(data, event_study_countries, event_study_time_per
     create_data_set_event_study function."""
 
     formula = (
-        "Q('10y_Maturity_Bond_Yield') ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + "
+        "Q('10y_Maturity_Bond_Yield') ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + Moody_Rating_PD + "
         "VIX_Daily_Close_Quarterly_Mean + Q('10y_Maturity_Bond_Yield_US') + C(Country) + C(Date) +"
         + " + ".join(
             [
@@ -140,6 +140,7 @@ def run_event_study_regression(data, event_study_countries, event_study_time_per
         "10y_Maturity_Bond_Yield_US",
         "Country",
         "Date",
+        "Moody_Rating_PD",
     ]
     data_without_us = data.loc[data["Country"] != "usa", :].dropna(
         subset=columns_in_the_model
@@ -627,9 +628,22 @@ def create_dataset_step_one_regression_quarterly_data(
     return merged_data
 
 
+def run_exuberance_index_regression_event_study_data(data):
+    """This function runs the regression of macro fundamentals on the sentiment
+    index."""
+
+    # Define the regression formula
+    formula = "McDonald_Sentiment_Index ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + GDP_in_Current_Prices_Growth_Lead + Current_Account_in_USD + VIX_Daily_Close_Quarterly_Mean + C(Country) + Moody_Rating_PD"
+
+    # Run the regression
+    model = smf.ols(formula, data=data).fit()
+
+    return model
+
+
 def run_exuberance_index_regression_quarterly_data(data):
-    """This function runs the first step regression using the data produced from the
-    first step regression tasks."""
+    """This function runs the regression of macro fundamentals on the sentiment index
+    for quarterly data."""
 
     # Define the regression formula
     formula = "McDonald_Sentiment_Index ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + GDP_in_Current_Prices_Growth_Lead + Current_Account_in_USD + VIX_Daily_Close_Quarterly_Mean + C(Country)"
