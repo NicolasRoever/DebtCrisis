@@ -633,7 +633,7 @@ def run_exuberance_index_regression_event_study_data(data):
     index."""
 
     # Define the regression formula
-    formula = "McDonald_Sentiment_Index ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + GDP_in_Current_Prices_Growth_Lead + Current_Account_in_USD + VIX_Daily_Close_Quarterly_Mean + C(Country) + Moody_Rating_PD"
+    formula = "McDonald_Sentiment_Index ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + Current_Account_in_USD + VIX_Daily_Close_Quarterly_Mean + C(Country) + Moody_Rating_PD"
 
     # Run the regression
     model = smf.ols(formula, data=data).fit()

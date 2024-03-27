@@ -118,6 +118,8 @@ def task_run_bond_yield_event_study(
 
     coefficient_data.to_pickle(produces[1])
 
+    # regression_dataset.to_pickle(produces[2])
+
 
 for index, country_list in enumerate(EVENT_STUDY_PLOT_COUNTRIES):
     plot_number = index + 1
