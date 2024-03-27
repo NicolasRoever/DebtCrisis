@@ -7,7 +7,7 @@ import spacy
 
 EVENT_STUDY_TIME_PERIOD = ["2008Q1", "2014Q1"]
 
-NO_LONG_RUNNING_TASKS = True
+NO_LONG_RUNNING_TASKS = False
 
 CONFIGURATION_SETTINGS = {
     "sentiment_index_calculation_method": "negative_and_positive",  # "negative_and_positive" or "negative"

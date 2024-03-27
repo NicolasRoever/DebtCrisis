@@ -95,13 +95,21 @@ def task_run_bond_yield_event_study(
         / _name_sentiment_index_output_file(
             "event_study_coefficients_data", CONFIGURATION_SETTINGS, ".pkl"
         ),
+        BLD
+        / "data"
+        / "event_study_approach"
+        / _name_sentiment_index_output_file(
+            "event_study_full_model_data", CONFIGURATION_SETTINGS, ".pkl"
+        ),
     ],
 ):
     data = pd.read_pickle(depends_on)
 
-    model = run_event_study_regression(
+    model, regression_dataset = run_event_study_regression(
         data, event_study_countries, event_study_time_period
     )
+
+    regression_dataset.to_pickle(produces[2])
 
     model_summary = model.summary()
 
@@ -117,8 +125,6 @@ def task_run_bond_yield_event_study(
     coefficient_data["Standard Errors"] = model.bse.values
 
     coefficient_data.to_pickle(produces[1])
-
-    # regression_dataset.to_pickle(produces[2])
 
 
 for index, country_list in enumerate(EVENT_STUDY_PLOT_COUNTRIES):

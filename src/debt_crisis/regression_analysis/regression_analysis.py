@@ -156,7 +156,7 @@ def run_event_study_regression(data, event_study_countries, event_study_time_per
         cov_kwds={"groups": data_without_us["Country"], "maxlags": 2},
     )
 
-    return model
+    return model, data_without_us
 
 
 def plot_event_study_coefficients(
