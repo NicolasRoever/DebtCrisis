@@ -44,6 +44,8 @@ def task_plot_empirical_word_frequency(
     produces=[
         BLD / "figures" / "sentiment_index" / "positive_word_frequency.png",
         BLD / "figures" / "sentiment_index" / "negative_word_frequency.png",
+        TOP_LEVEL_DIR / "Input_for_Paper" / "figures" / "positive_word_frequency.png",
+        TOP_LEVEL_DIR / "Input_for_Paper" / "figures" / "negative_word_frequency.png",
     ],
 ):
     data = pd.read_csv(depends_on)
@@ -54,8 +56,11 @@ def task_plot_empirical_word_frequency(
     positive_plot.savefig(produces[0])
     negative_plot.savefig(produces[1])
 
+    positive_plot.savefig(produces[2])
+    negative_plot.savefig(produces[3])
 
-for country in ["portugal", "greece"]:
+
+for country in ["ireland", "greece"]:
 
     @task(id=country)
     def task_plot_sentiment_and_exuberance_index_for_country(
@@ -83,7 +88,7 @@ for country in ["portugal", "greece"]:
         plot.savefig(produces[1])
 
 
-for country in ["portugal", "greece"]:
+for country in ["ireland", "greece"]:
 
     @task(id=country)
     def task_plot_sentiment_index_and_bond_yield_spread_for_country(
@@ -98,11 +103,19 @@ for country in ["portugal", "greece"]:
             BLD
             / "figures"
             / "sentiment_index"
-            / f"sentiment_index_and_bond_yield{country}.png",
+            / _name_sentiment_index_output_file(
+                f"sentiment_index_and_bond_yield{country})",
+                CONFIGURATION_SETTINGS,
+                ".png",
+            ),
             TOP_LEVEL_DIR
             / "Input_for_Paper"
             / "figures"
-            / f"sentiment_index_and_bond_yield_spread{country}.png",
+            / _name_sentiment_index_output_file(
+                f"sentiment_index_and_bond_yield{country})",
+                CONFIGURATION_SETTINGS,
+                ".png",
+            ),
         ],
     ):
         data = pd.read_pickle(depends_on)

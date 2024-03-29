@@ -20,6 +20,8 @@ from debt_crisis.regression_analysis.regression_analysis import (
     run_regression_exuberance_indicator_vs_event_study_coefficients_for_all_countries,
     plot_fitted_values_from_exuberance_unfounded_bond_yield_regression,
     run_exuberance_index_regression_event_study_data,
+    plot_unfounded_spreads_vs_unfounded_sentiment,
+    plot_unfounded_spreads_vs_daily_sentiment_index,
 )
 
 from debt_crisis.config import (
@@ -209,13 +211,22 @@ def task_run_exuberance_index_regression_with_event_study_data(
             CONFIGURATION_SETTINGS,
             ".pkl",
         ),
+        TOP_LEVEL_DIR
+        / "Input_for_Paper"
+        / "tables"
+        / "exuberance_index_regression_summary.tex",
     ],
 ):
     # Load the data
     data = pd.read_pickle(depends_on).dropna()
 
     # Run the regression
-    model = run_exuberance_index_regression_event_study_data(data)
+    model, regression_table_latex = run_exuberance_index_regression_event_study_data(
+        data
+    )
+
+    with open(produces[2], "w") as file:
+        file.write(regression_table_latex.as_latex())
 
     # Get the summary of the model
     model_summary = model.summary()
@@ -241,7 +252,11 @@ def task_run_regression_event_study_coefficients_vs_exuberance_index(
         BLD
         / "data"
         / "sentiment_exuberance"
-        / "exuberance_index_regression_quarterly.pkl",
+        / _name_sentiment_index_output_file(
+            "exuberance_index_regression_event_study_data",
+            CONFIGURATION_SETTINGS,
+            ".pkl",
+        ),
     ],
     produces=[
         BLD / "models" / "event_study_coefficients_vs_exuberance_index_regression.csv",
@@ -300,6 +315,77 @@ def task_plot_fitted_values_from_exuberance_unfounded_bond_yield_regression(
 
     plot.savefig(produces[0])
     plot.savefig(produces[1])
+
+
+for country in EVENT_STUDY_COUNTRIES:
+    country = country
+
+    @task(id=country)
+    def task_plot_unfounded_spreads_vs_unfounded_sentiment(
+        depends_on=[
+            BLD
+            / "data"
+            / "event_study_approach"
+            / _name_sentiment_index_output_file(
+                "event_study_coefficients_data", CONFIGURATION_SETTINGS, ".pkl"
+            ),
+            BLD
+            / "data"
+            / "sentiment_exuberance"
+            / _name_sentiment_index_output_file(
+                "exuberance_index_regression_event_study_data",
+                CONFIGURATION_SETTINGS,
+                ".pkl",
+            ),
+        ],
+        country=country,
+        produces=BLD
+        / "figures"
+        / "final regression"
+        / f"unfounded_spreads_vs_unfounded_sentiment_{country}.png",
+    ):
+        coefficients_data = pd.read_pickle(depends_on[0])
+        exuberance_data = pd.read_pickle(depends_on[1])
+
+        plot = plot_unfounded_spreads_vs_unfounded_sentiment(
+            coefficients_data, exuberance_data, country
+        )
+
+        plot.savefig(produces)
+
+
+for country in EVENT_STUDY_COUNTRIES:
+    country = country
+
+    @task(id=country)
+    def task_plot_unfounded_spreads_vs_daily_sentiment(
+        depends_on=[
+            BLD
+            / "data"
+            / "event_study_approach"
+            / _name_sentiment_index_output_file(
+                "event_study_coefficients_data", CONFIGURATION_SETTINGS, ".pkl"
+            ),
+            BLD
+            / "data"
+            / _name_sentiment_index_output_file(
+                "mcdonald_sentiment_index_cleaned", CONFIGURATION_SETTINGS, ".pkl"
+            ),
+        ],
+        country=country,
+        produces=BLD
+        / "figures"
+        / "final regression"
+        / f"unfounded_spreads_vs_daily_sentiment_{country}.png",
+    ):
+        coefficients_data = pd.read_pickle(depends_on[0])
+        sentiment_data = pd.read_pickle(depends_on[1])
+
+        plot = plot_unfounded_spreads_vs_daily_sentiment_index(
+            coefficients_data, sentiment_data, country
+        )
+
+        plot.savefig(produces)
 
 
 # ------------------------------------------------------------------------------------------

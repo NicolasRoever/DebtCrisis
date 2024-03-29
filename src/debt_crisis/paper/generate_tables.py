@@ -63,6 +63,57 @@ def generate_descriptive_statistics_from_full_event_study_dataset(data):
     return average_data
 
 
+def generate_sentiment_bond_spread_correlation_table(event_study_data):
+    correlation_data = generate_sentiment_bond_spread_correlation_from_event_study_data(
+        event_study_data
+    )
+
+    table_body = convert_dataframe_content_to_latex_table_body(correlation_data)
+
+    table = f"""
+
+     \\begin{{center}}
+    \\begin{{table}}[H] \\caption{{Results for Raw Sentiment Index}}
+    \\label{{table:correlation_sentiment_index}}
+    \\scalebox{{1}}{{
+    \\begin{{tabular}}{{p{{3cm}}p{{5 cm}}}}
+    \\toprule
+    \\textbf{{Country}} & \\textbf{{Correlation with Raw Sentiment Index}} \\\\
+    \\midrule
+    {table_body}
+    \\bottomrule
+    \\begin{{minipage}}{{15cm}}
+    \\footnotesize{{\\textbf{{Notes:}} The table shows corrleations between the bond yield spread of the country (measured as the difference between the 10 year government bond yield of that country with the United States' bond yield) and our raw sentiment index.}})
+    \\end{{minipage}}
+    \\end{{tabular}}
+    }}
+    \\end{{table}}
+    \\end{{center}}
+    """
+
+    return table
+
+
+def generate_sentiment_bond_spread_correlation_from_event_study_data(event_study_data):
+    # Group the data by 'Country' and calculate the correlation of 'Bond_Yield_Spread' and 'McDonald_Sentiment_Index'
+    correlations = event_study_data.groupby("Country").apply(
+        lambda x: x[["Bond_Yield_Spread", "McDonald_Sentiment_Index"]].corr().iloc[0, 1]
+    )
+
+    # Convert the Series to a DataFrame
+    correlations = correlations.to_frame().reset_index()
+    # Rename the columns
+    correlations.columns = ["Country", "Correlation"]
+
+    # Drop NA's and round
+    correlations = correlations.dropna().round(2)
+
+    # Capitalise the country names
+    correlations["Country"] = correlations["Country"].str.title()
+
+    return correlations
+
+
 def convert_dataframe_content_to_latex_table_body(data):
     # Convert each row to a string with ' & ' as the separator
     data_string = data.apply(lambda row: " & ".join(row.astype(str)), axis=1)

@@ -30,21 +30,28 @@ def clean_sentiment_count_data(raw_count_data, sentiment_dictionary):
 def plot_actual_word_frequency(data, indicator):
     """This function plots the actual word frequency taking the cleaned-count_data."""
 
+    plt.rcParams["text.usetex"] = True
+    plt.rcParams["font.family"] = "serif"
+
+    sns.set_style("white")
+
     # Filter the DataFrame
-    filtered_data = data[(data[indicator] == 1) & (data["Count"] > 600)]
+    filtered_data = (
+        data[(data[indicator] == 1)].sort_values(by="Count", ascending=False).head(20)
+    )
 
     # Sort the DataFrame
     sorted_data = filtered_data.sort_values(by="Count", ascending=False)
 
     # Create the plot
+    fig = plt.figure(figsize=(8, 7))
 
-    fig = plt.figure(figsize=(10, 6))
-
-    plt.barh(sorted_data["Word"], sorted_data["Count"])
-    plt.xlabel("Word")
-    plt.ylabel("Count")
-    plt.title(f"Word Counts for {indicator} Words")
+    plt.barh(sorted_data["Word"], sorted_data["Count"], color="#3c5488")
+    plt.xlabel("Total Number of Occurences")
     plt.yticks(fontsize=8)  # Adjust font size here
+
+    # Remove the top and right spines from plot
+    sns.despine()
 
     return fig
 
@@ -103,6 +110,8 @@ def plot_sentiment_index_and_bond_yield_spread_for_country(
     # Use LaTeX style for the font
     plt.rc("text", usetex=True)
 
+    plt.close(fig)
+
     # Align the zero of both y-axes
     # ax1.set_ylim(min(ax1.get_ylim()[0], ax2.get_ylim()[0]), max(ax1.get_ylim()[1], ax2.get_ylim()[1]))
     # ax2.set_ylim( 0.2, -1.05)
@@ -135,7 +144,7 @@ def plot_sentiment_index_and_exuberance_index_for_country(
         country_data["Residuals_Exuberance_Regression"],
         linestyle="-",
         color=color_scheme[0],
-        label=f"Market Exuberance Index",
+        label=f"Residuale, i.e. Unfounded Sentiment",
         alpha=0.75,
     )
     ax1.set_ylabel("Index Value", fontsize=14)
@@ -145,7 +154,7 @@ def plot_sentiment_index_and_exuberance_index_for_country(
         country_data["McDonald_Sentiment_Index"],
         linestyle="-",
         color=color_scheme[1],
-        label=f"Sentiment Index",
+        label=f"Raw Sentiment Index",
         alpha=0.75,
     )
 

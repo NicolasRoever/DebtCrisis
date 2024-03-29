@@ -4,6 +4,7 @@ import statsmodels.formula.api as smf
 import re
 import matplotlib.pyplot as plt
 import seaborn as sns
+from statsmodels.iolib.summary2 import summary_col
 
 
 from debt_crisis.config import (
@@ -443,6 +444,153 @@ def run_regression_exuberance_indicator_vs_event_study_coefficients(data, countr
     return model, fitted_values
 
 
+def plot_unfounded_spreads_vs_unfounded_sentiment(
+    event_study_coefficients_data,
+    unfounded_sentiment_data,
+    country,
+    color_scheme=["#3c5488", "#e64b35", "#4dbbd5", "#00a087", "#f39b7f"],
+):
+    merged_data = merge_event_study_coefficients_and_exuberance_index_data(
+        event_study_coefficients_data, unfounded_sentiment_data
+    )
+
+    country_data = merged_data[merged_data["Country"] == country]
+
+    # Set the style of the plot
+    sns.set_style("white")
+
+    # Create the plot
+    fig, ax1 = plt.subplots(figsize=(8, 5))
+
+    (line1,) = ax1.plot(
+        country_data["Date"],
+        country_data["Coefficient"],
+        linestyle="-",
+        color=color_scheme[0],
+        label="Unfounded Spread (Event Study Coefficient)",
+    )
+
+    ax2 = ax1.twinx()
+
+    (line2,) = ax2.plot(
+        country_data["Date"],
+        country_data["Residuals_Exuberance_Regression"],
+        linestyle="-",
+        color=color_scheme[1],
+        label="Unfounded Sentiment",
+    )
+
+    # Set the labels
+    ax1.set_xlabel("Date", fontsize=14)
+    ax1.set_ylabel("Unfounded Spread (Event Study Coefficient)", fontsize=14)
+    ax2.set_ylabel("Unfounded Sentiment", fontsize=14)
+
+    ax2.invert_yaxis()  # Invert the right y-axis
+
+    # Create a legend for both lines
+    plt.legend(
+        [line1, line2],
+        ["Unfounded Spread (Event Study Coefficient)", "Unfounded Sentiment"],
+    )
+
+    # Add a vertical line at 19. October 2010
+    ax1.axvline(pd.to_datetime("2010-10-19"), color="grey", linestyle="--")
+    ax1.text(pd.to_datetime("2010-10-19"), ax1.get_ylim()[1], "Deauville", ha="right")
+
+    # Add a vertivcal line on 6th september 2012
+    ax1.axvline(pd.to_datetime("2012-09-06"), color="grey", linestyle="--")
+    ax1.text(
+        pd.to_datetime("2012-09-06"), ax1.get_ylim()[1], "OMT Programme", ha="right"
+    )
+
+    # Keep only the y-axis and x-axis
+    sns.despine(left=False, bottom=False, right=False, top=True)
+
+    # Use LaTeX style for the font
+    plt.rc("text", usetex=True)
+
+    plt.close(fig)
+
+    return fig
+
+
+def plot_unfounded_spreads_vs_daily_sentiment_index(
+    event_study_coefficients_data,
+    daily_sentiment_data,
+    country,
+    color_scheme=["#3c5488", "#e64b35", "#4dbbd5", "#00a087", "#f39b7f"],
+):
+    clean_event_study_coefficients_data = (
+        extract_event_study_coefficients_from_event_study_regression_data(
+            event_study_coefficients_data
+        )
+    )
+    event_study_coefficients_data_country = clean_event_study_coefficients_data[
+        clean_event_study_coefficients_data["Country"] == country
+    ]
+
+    daily_sentiment_data_country = daily_sentiment_data[
+        daily_sentiment_data["Country"] == country
+    ]
+
+    # Set the style of the plot
+    sns.set_style("white")
+
+    # Create the plot
+    fig, ax1 = plt.subplots(figsize=(8, 5))
+
+    (line1,) = ax1.plot(
+        event_study_coefficients_data_country["Date"],
+        event_study_coefficients_data_country["Coefficient"],
+        linestyle="-",
+        color=color_scheme[0],
+        label="Unfounded Spread (Event Study Coefficient)",
+    )
+
+    ax2 = ax1.twinx()
+
+    (line2,) = ax2.plot(
+        daily_sentiment_data_country["Date"],
+        daily_sentiment_data_country["McDonald_Sentiment_Index"],
+        linestyle="-",
+        color=color_scheme[1],
+        label="Daily Sentiment",
+    )
+
+    # Set the labels
+    ax1.set_xlabel("Date", fontsize=14)
+    ax1.set_ylabel("Unfounded Spread (Event Study Coefficient)", fontsize=14)
+    ax2.set_ylabel("Unfounded Sentiment", fontsize=14)
+
+    ax2.invert_yaxis()  # Invert the right y-axis
+
+    # Create a legend for both lines
+    plt.legend(
+        [line1, line2],
+        ["Unfounded Spread (Event Study Coefficient)", "Daily Sentiment"],
+    )
+
+    # Add a vertical line at 19. October 2010
+    ax1.axvline(pd.to_datetime("2010-10-19"), color="grey", linestyle="--")
+    ax1.text(pd.to_datetime("2010-10-19"), ax1.get_ylim()[1], "Deauville", ha="right")
+
+    # Add a vertivcal line on 6th september 2012
+    ax1.axvline(pd.to_datetime("2012-09-06"), color="grey", linestyle="--")
+    ax1.text(
+        pd.to_datetime("2012-09-06"), ax1.get_ylim()[1], "OMT Programme", ha="right"
+    )
+
+    # Keep only the y-axis and x-axis
+    sns.despine(left=False, bottom=False, right=False, top=True)
+
+    # Use LaTeX style for the font
+    plt.rc("text", usetex=True)
+
+    plt.close(fig)
+
+    return fig
+
+
 def run_regression_exuberance_indicator_vs_event_study_coefficients_for_all_countries(
     data,
 ):
@@ -633,12 +781,22 @@ def run_exuberance_index_regression_event_study_data(data):
     index."""
 
     # Define the regression formula
-    formula = "McDonald_Sentiment_Index ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + Current_Account_in_USD + VIX_Daily_Close_Quarterly_Mean + C(Country) + Moody_Rating_PD"
+    formula = "McDonald_Sentiment_Index ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + Current_Account_in_USD + VIX_Daily_Close_Quarterly_Mean + Moody_Rating_PD"
 
     # Run the regression
     model = smf.ols(formula, data=data).fit()
 
-    return model
+    regression_summary = summary_col(
+        [model],
+        stars=True,
+        float_format="%0.3f",
+        info_dict={
+            "N": lambda x: "{0:d}".format(int(x.nobs)),
+            "R2": lambda x: "{:.2f}".format(x.rsquared),
+        },
+    )
+
+    return model, regression_summary
 
 
 def run_exuberance_index_regression_quarterly_data(data):
@@ -646,7 +804,7 @@ def run_exuberance_index_regression_quarterly_data(data):
     for quarterly data."""
 
     # Define the regression formula
-    formula = "McDonald_Sentiment_Index ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + GDP_in_Current_Prices_Growth_Lead + Current_Account_in_USD + VIX_Daily_Close_Quarterly_Mean + C(Country)"
+    formula = "McDonald_Sentiment_Index ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + GDP_in_Current_Prices_Growth_Lead + VIX_Daily_Close_Quarterly_Mean"
 
     # Run the regression
     model = smf.ols(formula, data=data).fit()
