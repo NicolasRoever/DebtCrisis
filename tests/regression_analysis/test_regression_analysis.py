@@ -1,10 +1,6 @@
 import pandas as pd
 import pytest
 
-from src.debt_crisis.regression_analysis.regression_analysis import (
-    add_dummy_columns_for_quarter_year_combination,
-)
-
 
 def test_add_dummy_columns_for_quarter_year_combination():
     # Test data

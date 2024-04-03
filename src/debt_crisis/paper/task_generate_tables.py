@@ -4,6 +4,7 @@ from debt_crisis.paper.generate_tables import (
     generate_summary_statistics_table_event_study,
     generate_descriptive_statistics_from_full_event_study_dataset,
     generate_sentiment_bond_spread_correlation_table,
+    generate_event_study_regression_output_table,
 )
 
 from debt_crisis.utilities import _name_sentiment_index_output_file
@@ -53,3 +54,21 @@ def task_generate_correlation_sentiment_index_bond_yield_spread_table(
 
     with open(produces, "w") as f:
         f.write(correlation_data)
+
+
+def task_generate_event_study_regression_output_table(
+    depends_on=BLD
+    / "data"
+    / "event_study_approach"
+    / "event_study_regression_table_data.pkl",
+    produces=TOP_LEVEL_DIR
+    / "Input_for_Paper"
+    / "tables"
+    / "event_study_regression_output.tex",
+):
+    data = pd.read_pickle(depends_on)
+
+    table = generate_event_study_regression_output_table(data)
+
+    with open(produces, "w") as f:
+        f.write(table)

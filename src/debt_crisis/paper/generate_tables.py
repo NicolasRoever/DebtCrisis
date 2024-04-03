@@ -114,6 +114,46 @@ def generate_sentiment_bond_spread_correlation_from_event_study_data(event_study
     return correlations
 
 
+def generate_event_study_regression_output_table(event_study_output_data):
+    row_names = [
+        "Public Debt as Percent of GDP",
+        "Real GDP Growth",
+        "Moody Sovereign Rating",
+        "CBOE VIX Index",
+        "Bond Yield US Bond 10 Year Maturity",
+        "Three Month US Treasury Yield",
+        "NASDAQ Index",
+        "Current Account",
+        "Consumer Price Index",
+        "Country Fixed Effects",
+        "Time Fixed Effects",
+        "Number of Observations",
+        "R-Squared",
+    ]
+
+    event_study_output_data.insert(0, "Variable", row_names)
+
+    table_body = convert_dataframe_content_to_latex_table_body(event_study_output_data)
+
+    table = f"""
+
+    {{
+    \\begin{{tabular}}{{l*{{7}}{{c}}}}
+    \\hline\\hline
+    & & (1) & (2) & (3) & (4) & (5) & (6) & (7) \\\\
+    \\cmidrule(l{{0.5em}} r{{0.5em}}) {{2-3}}
+
+    {table_body}
+
+    \\hline\\hline
+    \\multicolumn{{5}}{{l}}{{\\footnotesize * \\(p<0.05\\),**\\(p<0.01\\), *** \\(p<0.001\\)}}\\\\
+    \\end{{tabular}}
+    }}
+    """
+
+    return table
+
+
 def convert_dataframe_content_to_latex_table_body(data):
     # Convert each row to a string with ' & ' as the separator
     data_string = data.apply(lambda row: " & ".join(row.astype(str)), axis=1)
