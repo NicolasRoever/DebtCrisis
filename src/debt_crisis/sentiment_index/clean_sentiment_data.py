@@ -117,6 +117,11 @@ def preprocess_transcript_text(raw_transcript_text, nlp_model=NLP_MODEL):
     number_date_regex = re.compile(
         r"\d{1,2}(\s*(th|st|nd|rd))?(\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))?(\s*\d{2,4})?|\d+",
     )
+    enclosed_numbers = re.compile(r"\[\d+\]")
+    stars = re.compile(r"\*")
+    new_line_regex = re.compile(r"\n")
+    more_than_one_space = re.compile(r"\s{2,}")
+    backslashes = re.compile(r"\\")
 
     # Remove content before "Presentation" and after "PRELIMINARY TRANSCRIPT:"
     text = presentation_regex.sub("", raw_transcript_text)
@@ -127,11 +132,27 @@ def preprocess_transcript_text(raw_transcript_text, nlp_model=NLP_MODEL):
     # Remove consecutive "-" and "=" occurring more than twice
     text = dash_equals_regex.sub("", text)
 
+    # Remove enclosed numbers in the text
+
+    text = enclosed_numbers.sub("", text)
+
+    # Remove stars
+    text = stars.sub("", text)
+
+    # Remove new line marks
+    text = new_line_regex.sub(" ", text)
+
+    # Remove consecutive spaces
+    text = more_than_one_space.sub(" ", text)
+
+    # Remove backslashes
+    text = backslashes.sub("", text)
+
     # Remove dates and numbers
-    text = number_date_regex.sub("", text)
+    # text = number_date_regex.sub("", text)
 
     # Convert to lowercase and remove non-alphabetic characters
-    text = re.sub(r"[^a-zA-Z\s]", "", text.lower())
+    text = text.lower()
 
     return text
 

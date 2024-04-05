@@ -5,6 +5,7 @@ import re
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import pytest
 
 
 from src.debt_crisis.sentiment_index.clean_sentiment_data import (
@@ -22,7 +23,9 @@ from src.debt_crisis.sentiment_index.clean_sentiment_data import (
 from src.debt_crisis.config import SRC, NLP_MODEL
 
 
-test_transcript = r"""
+@pytest.fixture
+def test_transcript():
+    return r"""
 
 
 Thomson Reuters StreetEvents Event Transcript
@@ -851,3 +854,22 @@ def test_calculate_loughlan_mcdonald_sentiment_index():
     )
 
     pd.testing.assert_frame_equal(expected_output, actual_output, check_dtype=False)
+
+
+def test_preprocess_transcript_text_correct_removal(test_transcript):
+    actual_result = preprocess_transcript_text(test_transcript)
+
+    # Assert no [56] type digits
+    assert re.search(r"\[\d+\]", actual_result) is None
+
+    # ASSERT no *
+    assert re.search(r"\*", actual_result) is None
+
+    # Assert no new line characters \n
+    assert re.search(r"\n", actual_result) is None
+
+    # Assert no multiple spaces
+    assert re.search(r"  ", actual_result) is None
+
+    # Assert no backslashes
+    assert re.search(r"\\", actual_result) is None

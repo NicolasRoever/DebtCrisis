@@ -1,28 +1,28 @@
-# import pandas as pd
-# from pytask import task
-# import pytask
-# import matplotlib.pyplot as plt
-# import pickle
+import pandas as pd
+from pytask import task
+import pytask
+import matplotlib.pyplot as plt
+import pickle
 
-# from debt_crisis.config import (
-#     BLD,
-#     SRC,
-#     NO_LONG_RUNNING_TASKS,
-#     COUNTRIES_UNDER_STUDY,
-#     CONFIGURATION_SETTINGS,
-# )
-# from debt_crisis.sentiment_index.clean_sentiment_data import (
-#     combine_all_transcripts_into_dataframe,
-#     clean_transcript_data_df,
-#     tokenize_text_and_remove_non_alphabetic_characters_and_stop_words,
-#     clean_sentiment_dictionary_data,
-#     create_sentiment_dictionary_for_lookups,
-#     create_country_sentiment_index_for_one_transcript_and_print_transcript_number,
-#     calculate_loughlan_mcdonald_sentiment_index,
-#     create_word_count_dictionary,
-# )
+from debt_crisis.config import (
+    BLD,
+    SRC,
+    NO_LONG_RUNNING_TASKS,
+    COUNTRIES_UNDER_STUDY,
+    CONFIGURATION_SETTINGS,
+)
+from debt_crisis.sentiment_index.clean_sentiment_data import (
+    combine_all_transcripts_into_dataframe,
+    clean_transcript_data_df,
+    tokenize_text_and_remove_non_alphabetic_characters_and_stop_words,
+    clean_sentiment_dictionary_data,
+    create_sentiment_dictionary_for_lookups,
+    create_country_sentiment_index_for_one_transcript_and_print_transcript_number,
+    calculate_loughlan_mcdonald_sentiment_index,
+    create_word_count_dictionary,
+)
 
-# from debt_crisis.utilities import _name_sentiment_index_output_file
+from debt_crisis.utilities import _name_sentiment_index_output_file
 
 
 # @pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")
@@ -126,6 +126,7 @@
 # ):
 #     raw_data = pd.read_pickle(depends_on)
 #     cleaned_data = clean_transcript_data_df(raw_data)
+#     cleaned_data["Transcript_ID"] = cleaned_data.index + 1
 
 #     cleaned_data.to_pickle(produces)
 

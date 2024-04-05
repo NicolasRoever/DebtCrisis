@@ -4,67 +4,59 @@ from debt_crisis.sentiment_index.clean_sentiment_data import (
 
 import pandas as pd
 import random
+import re
 
 
-def get_random_country_transcript_snippet(
-    data, countries_under_study, country_names_file, window_size=40
+def create_set_with_all_country_words(country_names_file):
+    # Flatten the DataFrame to a single list
+    country_words = country_names_file.values.flatten()
+
+    # Remove NaN values
+    country_words = [word for word in country_words if pd.notna(word)]
+
+    # Create a set of unique words
+    country_words_set = set(country_words)
+
+    return country_words_set
+
+
+def get_a_text_snippet_if_there_is_country_mentioned(
+    full_data, country_words_set, context=50
 ):
-    row = data.sample(1)
-
-    # Get the transcript text
-    transcript = row["Transcript"].values[0]
-
-    # Split the transcript into words
-    transcript_words = transcript.split()
-
-    # Find all countries present in the text
-    countries_in_text = [
-        country for country in countries_under_study if country in transcript_words
-    ]
-
-    # If no countries are present in the text, return None
-    if not countries_in_text:
-        return None
-
-    # Randomly select a country from the countries present in the text
-    country = random.choice(countries_in_text)
-
+    row = full_data.sample(1)
     transcript_id = row["Transcript_ID"].values[0]
-
-    country_names = obtain_country_names(country, country_names_file)
-
-    # Find the indices of the country in the transcript
-    country_indices = get_country_appearance_index_from_transcript_text(
-        transcript_words, country_names
+    occuring_words = country_words_set.intersection(
+        set(re.findall(r"\S+", row["Preprocessed_Transcript_Step_1"].values[0]))
     )
 
-    # Randomly select an index from country_indices
-    index = random.choice(country_indices)
+    if occuring_words:
+        # Randomly pick a word
+        word = random.choice(list(occuring_words))
 
-    # Get the start and end indices for the snippet
-    start = max(0, index - window_size)
-    end = min(len(transcript_words), index + window_size)
+        # Get the 'Transcript'
+        transcript = row["Preprocessed_Transcript_Step_1"].values[0]
 
-    # Get the snippet
-    snippet = " ".join(transcript_words[start:end])
+        # Split the 'Transcript' into words
+        words = re.findall(r"\S+", transcript)
 
-    # Create a single-row DataFrame
-    result = pd.DataFrame(
-        {"Country": [country], "Transcript_ID": [transcript_id], "Snippet": [snippet]}
-    )
+        # Find the index of the word
+        index = words.index(word)
 
-    return result
+        # Get the 40 preceding and succeeding words
+        start = max(0, index - context)
+        end = min(len(words), index + context)
+        snippet = words[start:end]
 
+        # Create a single-row DataFrame
+        result = pd.DataFrame(
+            {
+                "Keyword": [" ".join(word)],
+                "Transcript_ID": [transcript_id],
+                "Snippet": [snippet],
+            }
+        )
 
-def obtain_country_names(country, country_names_file):
-    """THis function extracts the country names from the country names file."""
+        return result
 
-    country_row = country_names_file[
-        country_names_file["name"].str.lower() == country.lower()
-    ]
-    if not country_row.empty:
-        country_names = set(country_row.iloc[0].values.tolist())
     else:
-        country_names = set()
-
-    return country_names
+        return None

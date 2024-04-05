@@ -1,39 +1,42 @@
 from debt_crisis.gpt_sentiment_index.gpt_sentiment_index import (
-    get_random_country_transcript_snippet,
+    create_set_with_all_country_words,
+    get_a_text_snippet_if_there_is_country_mentioned,
 )
 
 from debt_crisis.config import BLD, SRC, COUNTRIES_UNDER_STUDY
 
 import pandas as pd
+import re
 
 
 def task_create_random_code_snippets(
-    depends_on=BLD / "data" / "df_transcripts_raw.pkl",
+    depends_on=BLD / "data" / "df_transcripts_clean_step_1.pkl",
     country_names_file_path=SRC / "data" / "country_names" / "country_names.xlsx",
     countries_under_study=COUNTRIES_UNDER_STUDY,
     produces=BLD / "data" / "gpt_sentiment_data" / "df_random_transcript_snippets.xlsx",
 ):
     country_names_file = pd.read_excel(country_names_file_path)
 
+    country_words_set = create_set_with_all_country_words(country_names_file)
+
     data = pd.read_pickle(depends_on)
 
-    # Initialize an empty DataFrame
-    df = pd.DataFrame()
+    final_output = pd.DataFrame()
 
-    # Loop until df has 200 rows
-    while len(df) < 200:
-        # Execute the function
-        result = get_random_country_transcript_snippet(
-            data=data,
-            countries_under_study=countries_under_study,
-            country_names_file=country_names_file,
-            window_size=40,
+    while len(final_output) < 200:
+        single_snippet = get_a_text_snippet_if_there_is_country_mentioned(
+            data, country_words_set
         )
 
-        # If the result is not empty, append it to df
-        if result is not None:
-            df = pd.concat([df, result])
-            print(len(df))
+        if single_snippet is not None:
+            final_output = pd.concat([final_output, single_snippet])
 
-    # Save the DataFrame to a file
-    df.to_excel(produces, index=False)
+            print(len(final_output))
+
+    # Clean the dataframe
+
+    final_output["Snippet"] = final_output["Snippet"].apply(lambda x: " ".join(x))
+
+    final_output = final_output.drop_duplicates(subset=["Snippet"])
+
+    final_output.to_excel(produces, index=False)
