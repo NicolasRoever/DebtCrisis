@@ -119,16 +119,16 @@ from debt_crisis.utilities import _name_sentiment_index_output_file
 #     word_count_df.to_pickle(produces[1])
 
 
-# @pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")
-# def task_clean_transcript_data_step_1(
-#     depends_on=BLD / "data" / "df_transcripts_raw.pkl",
-#     produces=BLD / "data" / "df_transcripts_clean_step_1.pkl",
-# ):
-#     raw_data = pd.read_pickle(depends_on)
-#     cleaned_data = clean_transcript_data_df(raw_data)
-#     cleaned_data["Transcript_ID"] = cleaned_data.index + 1
+@pytask.mark.skipif(NO_LONG_RUNNING_TASKS, reason="Skip long-running tasks.")
+def task_clean_transcript_data_step_1(
+    depends_on=BLD / "data" / "df_transcripts_raw.pkl",
+    produces=BLD / "data" / "df_transcripts_clean_step_1.pkl",
+):
+    raw_data = pd.read_pickle(depends_on)
+    cleaned_data = clean_transcript_data_df(raw_data)
+    cleaned_data["Transcript_ID"] = cleaned_data.index + 1
 
-#     cleaned_data.to_pickle(produces)
+    cleaned_data.to_pickle(produces)
 
 
 # # def task_plot_raw_data_sentiment_dictionart_barplot(
