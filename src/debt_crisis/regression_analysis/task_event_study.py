@@ -10,6 +10,8 @@ from debt_crisis.regression_analysis.event_study import (
     plot_event_study_coefficients,
     plot_event_study_coefficients_for_multiple_countries_in_one_plot,
     generate_regresssion_table_for_list_of_configurations,
+    run_al_amine_regression,
+    create_comparison_table_our_results_vs_al_amine,
 )
 
 from debt_crisis.config import (
@@ -20,6 +22,7 @@ from debt_crisis.config import (
     CONFIGURATION_SETTINGS,
     EVENT_STUDY_PLOT_COUNTRIES,
     EVENT_STUDY_MODEL_LIST,
+    MOODY_RATING_CONVERSION,
 )
 
 from debt_crisis.utilities import _name_sentiment_index_output_file
@@ -201,3 +204,28 @@ def task_generate_data_for_regression_table(
     )
 
     regression_table_data.to_pickle(produces)
+
+
+def task_run_comparison_regression_to_al_amine(
+    depends_on=[
+        BLD
+        / "data"
+        / "event_study_approach"
+        / _name_sentiment_index_output_file(
+            "event_study_dataset", CONFIGURATION_SETTINGS, ".pkl"
+        ),
+        MOODY_RATING_CONVERSION,
+    ],
+    produces=TOP_LEVEL_DIR
+    / "Input_for_Paper"
+    / "tables"
+    / "event_study_comparison_to_al_amine.tex",
+):
+    data = pd.read_pickle(depends_on[0])
+
+    model, regression_data = run_al_amine_regression(data, depends_on[1])
+
+    table = create_comparison_table_our_results_vs_al_amine(model, regression_data)
+
+    with open(produces, "w") as file:
+        file.write(table)

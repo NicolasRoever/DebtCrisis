@@ -14,11 +14,13 @@ def generate_summary_statistics_table_event_study(data):
     \\begin{{tabular}}{{p{{3cm}}p{{0.2cm}}p{{3cm}}p{{3cm}}p{{1.5cm}}p{{0.2cm}}p{{2cm}}p{{1.5cm}}}}
     \\toprule
     & \multicolumn{{6}}{{c}}{{Average}} & & \\\\
-    \\textbf{{Country}} & \\textbf{{Public Debt as \\% of GDP}} & \\textbf{{10 Year Sovereign Bond Yield}} & \\textbf{{10 Year Sovereign Bond Yield Spread}} & \\textbf{{Real GDP Growth}} & \\textbf{{Mode Moody Sovereign Rating}}& \\textbf{{Number Observations}} \\\\
+    & \multicolumn{{5}}{{c}}{{Average}} & & \\\\
+   Country & Public Debt as \\% of GDP & 10 Year Bond Yield & Real GDP Growth &  & Mode Moody Rating & No. Observations \\\\
+   \\midrule
     {table_body}
     \\midrule
     \\begin{{minipage}}{{15cm}}
-    \\footnotesize{{\\textbf{{Notes:}} The table presents summary statistics for the dataset we compiled for our event study. We have a total of {number_of_observations} observations as there are some missing data (i.e. in the bond yields we obtained from the OECD).}}
+    \\footnotesize{{\\textbf{{Notes:}} The table presents summary statistics for the dataset we compiled for our event study.  We have a total of {number_of_observations} observations as there are some missing data (i.e. in the bond yields we obtained from the OECD).}}
     \\end{{minipage}}
        \\end{{tabular}}
     }}
@@ -57,8 +59,8 @@ def generate_descriptive_statistics_from_full_event_study_dataset(data):
     average_data["Country"] = average_data["Country"].str.title()
 
     # Insert empty columns for breaks
-    average_data.insert(2, "Break1", "")
-    average_data.insert(5, "Break2", "")
+    average_data.insert(1, "Break1", "")
+    average_data.insert(6, "Break2", "")
 
     return average_data
 

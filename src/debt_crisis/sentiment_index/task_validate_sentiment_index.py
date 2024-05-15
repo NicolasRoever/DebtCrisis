@@ -3,9 +3,15 @@ from debt_crisis.sentiment_index.validate_sentiment_index import (
     plot_actual_word_frequency,
     plot_sentiment_index_and_bond_yield_spread_for_country,
     plot_sentiment_index_and_exuberance_index_for_country,
+    plot_mcdonald_sentiment_index_for_countries,
 )
 
-from debt_crisis.config import BLD, TOP_LEVEL_DIR, CONFIGURATION_SETTINGS
+from debt_crisis.config import (
+    BLD,
+    TOP_LEVEL_DIR,
+    CONFIGURATION_SETTINGS,
+    COUNTRIES_UNDER_STUDY,
+)
 
 from debt_crisis.utilities import _name_sentiment_index_output_file
 
@@ -88,7 +94,7 @@ for country in ["ireland", "greece"]:
         plot.savefig(produces[1])
 
 
-for country in ["ireland", "greece"]:
+for country in COUNTRIES_UNDER_STUDY:
 
     @task(id=country)
     def task_plot_sentiment_index_and_bond_yield_spread_for_country(
@@ -106,7 +112,7 @@ for country in ["ireland", "greece"]:
             / _name_sentiment_index_output_file(
                 f"sentiment_index_and_bond_yield{country})",
                 CONFIGURATION_SETTINGS,
-                ".png",
+                ".pdf",
             ),
             TOP_LEVEL_DIR
             / "Input_for_Paper"
@@ -114,7 +120,7 @@ for country in ["ireland", "greece"]:
             / _name_sentiment_index_output_file(
                 f"sentiment_index_and_bond_yield{country})",
                 CONFIGURATION_SETTINGS,
-                ".png",
+                ".pdf",
             ),
         ],
     ):
@@ -124,6 +130,24 @@ for country in ["ireland", "greece"]:
 
         plot.savefig(produces[0])
         plot.savefig(produces[1])
+
+
+def task_plot_mcdonald_sentiment_index_for_countries(
+    depends_on=BLD
+    / "data"
+    / "sentiment_exuberance"
+    / "exuberance_index_regression_quarterly.pkl",
+    countries=["greece", "germany", "ireland", "portugal", "spain"],
+    produces=[
+        BLD / "figures" / "sentiment_index" / "mcdonald_sentiment_index.png",
+        TOP_LEVEL_DIR / "Input_for_Paper" / "figures" / "mcdonald_sentiment_index.png",
+    ],
+):
+    data = pd.read_pickle(depends_on)
+    plot = plot_mcdonald_sentiment_index_for_countries(data, countries)
+
+    plot.savefig(produces[0])
+    plot.savefig(produces[1])
 
 
 # def task_create_empty_dataframe(

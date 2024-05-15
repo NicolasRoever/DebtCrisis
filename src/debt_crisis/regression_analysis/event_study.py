@@ -23,6 +23,7 @@ from debt_crisis.utilities import (
     _check_dataframe_rows,
     check_if_dataframe_column_is_datetime_type,
     _check_for_missing_values_in_dataframe_column,
+    _create_dictionary_of_coefficients_with_stars,
 )
 
 
@@ -164,6 +165,127 @@ def run_event_study_regression(data, event_study_countries, event_study_time_per
     )
 
     return model, data_without_us
+
+
+def run_al_amine_regression(data, moody_rating_mapping):
+    """This function takes in the event study data set and runs a regression
+    specification analogous to the one in Al-Amine and Willems (2022)."""
+
+    # Get Public Debt Change as Percent
+    data["Public_Debt_as_%_of_GDP_Change"] = data.groupby("Country")[
+        "Public_Debt_as_%_of_GDP"
+    ].pct_change()
+
+    # Get Log Bond Spread
+    data["Log_Bond_Spread"] = np.log(data["10y_Maturity_Bond_Yield"]) - np.log(
+        data["10y_Maturity_Bond_Yield_US"]
+    )
+
+    # Make mapping
+    data["Moody_Rating_Numerical"] = data["Rating_Moody_Last_Quarter_Day"].map(
+        moody_rating_mapping
+    )
+
+    model_specification = "Log_Bond_Spread ~ Moody_Rating_Numerical + Q('Public_Debt_as_%_of_GDP') + Q('Public_Debt_as_%_of_GDP_Change') + Q('Eurostat_CPI_Annualised Growth_Rate') + Current_Account_in_USD + GDP_in_Current_Prices_Growth + VIX_Daily_Close_Quarterly_Mean + NASDAQ_Daily_Close_Quarterly_Mean"
+
+    # Drop all NA's
+    regression_data = data.dropna(
+        subset=[
+            "Log_Bond_Spread",
+            "Moody_Rating_Numerical",
+            "Public_Debt_as_%_of_GDP",
+            "Public_Debt_as_%_of_GDP_Change",
+            "Eurostat_CPI_Annualised Growth_Rate",
+            "Current_Account_in_USD",
+            "GDP_in_Current_Prices_Growth",
+            "VIX_Daily_Close_Quarterly_Mean",
+            "NASDAQ_Daily_Close_Quarterly_Mean",
+        ]
+    )
+
+    model = smf.ols(model_specification, data=regression_data).fit(
+        cov_type="cluster", cov_kwds={"groups": regression_data["Country"]}
+    )
+
+    return model, regression_data
+
+
+def create_comparison_table_our_results_vs_al_amine(fitted_model, data):
+    """THis function creates a Latex table comparing the results from our model to the
+    results from Al-Amine and Willems (2022)."""
+
+    (
+        dictionary_with_coefficients,
+        t_values,
+    ) = create_dictionary_with_coefficients_with_stars_and_t_values(fitted_model)
+
+    r_squared = fitted_model.rsquared
+
+    number_countries = len(data["Country"].unique())
+    observations = len(data)
+
+    table = f"""
+    \\begin{{center}}
+    \\begin{{table}}[h!] \\caption{{Descriptive Statistics of Data Used in Event Study}}
+    \\label{{table:descriptives_event_study}}
+    \\begin{{tabular}}{{p{{4cm}}p{{4cm}}p{{4cm}}p{{4cm}}}}
+    \\toprule
+     Variable in Our Estimation & Value & Value in Al-Amine and Willems (2022) & Value  \\\\
+     Moody Rating & {dictionary_with_coefficients['Moody_Rating_Numerical']} & Average credit rating  & −0.245***\\\\
+      & ({t_values["Moody_Rating_Numerical"]:.2f}) & & (−29.99) \\\\
+        Public Debt as \\% of GDP & {dictionary_with_coefficients["Q('Public_Debt_as_%_of_GDP')"]} & Public Debt as \\% of GDP & −0.002** *\\\\
+         & ({t_values["Q('Public_Debt_as_%_of_GDP')"]:.2f}) & & (−2.17) \\\\
+                Public Debt as \\% of GDP Change & {dictionary_with_coefficients["Q('Public_Debt_as_%_of_GDP_Change')"]} & Public Debt as \\% of GDP Change & −0.002**\\\\
+        & ({t_values["Q('Public_Debt_as_%_of_GDP_Change')"]:.2f}) & & (−2.63) \\\\
+        Inflation (\\%) & {dictionary_with_coefficients["Q('Eurostat_CPI_Annualised Growth_Rate')"]} & Inflation (\\%) & -0.003**\\\\
+         & ({t_values["Q('Eurostat_CPI_Annualised Growth_Rate')"]:.2f}) & & (-2.63) \\\\
+        Current Account Balance & {dictionary_with_coefficients['Current_Account_in_USD']} & Current Account Balance & 0.014**\\\\
+         & ({t_values["Current_Account_in_USD"]:.2f}) & & (2.54) \\\\
+        Real GDP Growth & {dictionary_with_coefficients['GDP_in_Current_Prices_Growth']} &  Real GDP Growth & 0.032***\\\\
+         & ({t_values["GDP_in_Current_Prices_Growth"]:.2f}) & & (3.45) \\\\
+        VIX & {dictionary_with_coefficients['VIX_Daily_Close_Quarterly_Mean']} & VIX & 0.045***\\\\
+        & ({t_values["VIX_Daily_Close_Quarterly_Mean"]:.2f}) & & (10.08) \\\\
+        NASDAQ Returns & {dictionary_with_coefficients['NASDAQ_Daily_Close_Quarterly_Mean']} & S\\&P 500 Returns  & 2.018***\\\\
+         & ({t_values["NASDAQ_Daily_Close_Quarterly_Mean"]:.2f}) & & (5.46) \\\\
+        Constant & {dictionary_with_coefficients['Intercept']} & Constant & 7.476***\\\\
+         & ({t_values["Intercept"]:.2f}) & & (52.10) \\\\
+        R-Squared & {r_squared:.2f} & R-Squared & 0.753 & \\\\
+        Countries & {number_countries} & Countries & 87 & \\\\
+        Observations & {observations} & Observations & 4364 & \\\\
+    \\midrule
+    \\begin{{minipage}}{{15cm}}
+    \\footnotesize{{\\textbf{{Notes:}} The dependent variable in this regression is the natural log of the 10 year government bond yield of the country minus the 10 year government bond yield of the US. The table compares the results from an estimtation with our dataset to the results from Al-Amine and Willems (2022). The t-values are in parentheses. The stars indicate the significance level of the coefficient: *** p<0.01, ** p<0.05, * p<0.1.}}
+    \\end{{minipage}}
+       \\end{{tabular}}
+    \\end{{table}}
+    \\end{{center}}
+    """
+
+    return table
+
+
+def create_dictionary_with_coefficients_with_stars_and_t_values(fitted_model):
+    # Define the parameters to extract
+    parameters = [
+        "Moody_Rating_Numerical",
+        "Q('Public_Debt_as_%_of_GDP')",
+        "Q('Public_Debt_as_%_of_GDP_Change')",
+        "Q('Eurostat_CPI_Annualised Growth_Rate')",
+        "Current_Account_in_USD",
+        "GDP_in_Current_Prices_Growth",
+        "VIX_Daily_Close_Quarterly_Mean",
+        "NASDAQ_Daily_Close_Quarterly_Mean",
+        "Intercept",
+    ]
+
+    coefficients_with_stars = _create_dictionary_of_coefficients_with_stars(
+        parameters, fitted_model
+    )
+
+    t_values = fitted_model.tvalues
+
+    # Convert the dictionary to a pandas Series and return it
+    return pd.Series(coefficients_with_stars), t_values
 
 
 def plot_event_study_coefficients(

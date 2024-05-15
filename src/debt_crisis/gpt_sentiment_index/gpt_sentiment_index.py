@@ -5,6 +5,8 @@ from debt_crisis.sentiment_index.clean_sentiment_data import (
 import pandas as pd
 import random
 import re
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 def create_set_with_all_country_words(country_names_file):
@@ -63,7 +65,7 @@ def get_a_text_snippet_if_there_is_country_mentioned(
 
 
 def extract_gpt_training_dataset_from_preprocessed_transcripts(
-    transcript_row, country_names_set, context=300
+    transcript_row, country_names_set, context=400
 ):
     """This function is written to be applied on every row of the dataframe preprocessed
     transcripts step 1. It extracts a new dataframe with the complete data we want to
@@ -131,3 +133,46 @@ def get_index_where_words_occur(set_of_words, text):
     ]
 
     return indexes
+
+
+def plot_country_occurrences(data):
+    """This function plots the occurrences of each country in the 'Country' column."""
+
+    plt.rcParams["text.usetex"] = True
+    plt.rcParams["font.family"] = "serif"
+
+    sns.set_style("white")
+
+    # Capitalize the country names
+    data["Country"] = data["Country"].str.capitalize()
+
+    # Count the occurrences of each country
+    country_counts = data["Country"].value_counts()
+
+    # Calculate the percentage for each country
+    total = len(data)
+    percentages = 100 * country_counts / total
+
+    # Sort the counts in descending order
+    sorted_counts = country_counts.sort_values(ascending=False)
+
+    # Create the plot
+    fig = plt.figure(figsize=(8, 7))
+
+    bars = plt.barh(sorted_counts.index, sorted_counts.values, color="#3c5488")
+    plt.xlabel("Total Number of Occurrences")
+    plt.yticks(fontsize=8)  # Adjust font size here
+
+    # Add the percentages to the right of the bars
+    for bar, percentage in zip(bars, percentages.sort_values(ascending=False)):
+        plt.text(
+            bar.get_width() + 200,
+            bar.get_y() + bar.get_height() / 2,
+            f" ({percentage:.1f} \\%)",
+            va="center",
+        )
+
+    # Remove the top and right spines from plot
+    sns.despine()
+
+    return fig
