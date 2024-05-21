@@ -405,42 +405,6 @@ def create_dataset_step_one_regression_quarterly_data(
     return merged_data
 
 
-def run_exuberance_index_regression_event_study_data(data):
-    """This function runs the regression of macro fundamentals on the sentiment
-    index."""
-
-    # Define the regression formula
-    formula = "McDonald_Sentiment_Index ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + Current_Account_in_USD + VIX_Daily_Close_Quarterly_Mean + Moody_Rating_PD"
-
-    # Run the regression
-    model = smf.ols(formula, data=data).fit()
-
-    regression_summary = summary_col(
-        [model],
-        stars=True,
-        float_format="%0.3f",
-        info_dict={
-            "N": lambda x: "{0:d}".format(int(x.nobs)),
-            "R2": lambda x: "{:.2f}".format(x.rsquared),
-        },
-    )
-
-    return model, regression_summary
-
-
-def run_exuberance_index_regression_quarterly_data(data):
-    """This function runs the regression of macro fundamentals on the sentiment index
-    for quarterly data."""
-
-    # Define the regression formula
-    formula = "McDonald_Sentiment_Index ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + GDP_in_Current_Prices_Growth_Lead + VIX_Daily_Close_Quarterly_Mean"
-
-    # Run the regression
-    model = smf.ols(formula, data=data).fit()
-
-    return model
-
-
 def run_step_two_regression_quarterly_data(data):
     """This function runs the second step regression."""
 
@@ -456,6 +420,19 @@ def run_step_three_regression_quarterly_data(data):
 
     formula = "Residuals_Step_Two_Regression ~ Residuals_Step_One_Regression"
 
+    model = smf.ols(formula, data=data).fit()
+
+    return model
+
+
+def run_exuberance_index_regression_quarterly_data(data):
+    """This function runs the regression of macro fundamentals on the sentiment index
+    for quarterly data."""
+
+    # Define the regression formula
+    formula = "McDonald_Sentiment_Index ~ Q('Public_Debt_as_%_of_GDP')+ GDP_in_Current_Prices_Growth + GDP_in_Current_Prices_Growth_Lead + VIX_Daily_Close_Quarterly_Mean"
+
+    # Run the regression
     model = smf.ols(formula, data=data).fit()
 
     return model

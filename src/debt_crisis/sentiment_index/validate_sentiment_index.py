@@ -48,7 +48,7 @@ def plot_actual_word_frequency(data, indicator):
 
     plt.barh(sorted_data["Word"], sorted_data["Count"], color="#3c5488")
     plt.xlabel("Total Number of Occurences")
-    plt.yticks(fontsize=8)  # Adjust font size here
+    plt.yticks(fontsize=12)  # Adjust font size here
 
     # Remove the top and right spines from plot
     sns.despine()

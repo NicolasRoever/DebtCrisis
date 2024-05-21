@@ -48,10 +48,10 @@ def task_clean_sentiment_word_count_data(
 def task_plot_empirical_word_frequency(
     depends_on=BLD / "data" / "sentiment_data" / "sentiment_word_count_clean.csv",
     produces=[
-        BLD / "figures" / "sentiment_index" / "positive_word_frequency.png",
-        BLD / "figures" / "sentiment_index" / "negative_word_frequency.png",
-        TOP_LEVEL_DIR / "Input_for_Paper" / "figures" / "positive_word_frequency.png",
-        TOP_LEVEL_DIR / "Input_for_Paper" / "figures" / "negative_word_frequency.png",
+        BLD / "figures" / "sentiment_index" / "positive_word_frequency.pdf",
+        BLD / "figures" / "sentiment_index" / "negative_word_frequency.pdf",
+        TOP_LEVEL_DIR / "Input_for_Paper" / "figures" / "positive_word_frequency.pdf",
+        TOP_LEVEL_DIR / "Input_for_Paper" / "figures" / "negative_word_frequency.pdf",
     ],
 ):
     data = pd.read_csv(depends_on)

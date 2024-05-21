@@ -1,4 +1,16 @@
 import pandas as pd
+import numpy as np
+import statsmodels.formula.api as smf
+
+
+def calculate_p_value_for_from_univariate_regression(
+    df, formula="Bond_Yield_Spread ~ McDonald_Sentiment_Index"
+):
+    try:
+        model = smf.ols(formula=formula, data=df).fit()
+        return model.pvalues["McDonald_Sentiment_Index"]
+    except ValueError:
+        return np.nan
 
 
 def generate_summary_statistics_table_event_study(data):
@@ -8,14 +20,14 @@ def generate_summary_statistics_table_event_study(data):
 
     table = f"""
     \\begin{{center}}
-    \\begin{{table}}[h!] \\caption{{Descriptive Statistics of Data Used in Event Study}}
+    \\begin{{table}}[H] \\caption{{Descriptive Statistics of Data Used in Event Study}}
     \\label{{table:descriptives_event_study}}
-    \\scalebox{{1}}{{
-    \\begin{{tabular}}{{p{{3cm}}p{{0.2cm}}p{{3cm}}p{{3cm}}p{{1.5cm}}p{{0.2cm}}p{{2cm}}p{{1.5cm}}}}
+    \\scalebox{{0.7}}{{
+    \\begin{{tabular}}{{p{{3cm}}p{{0.2cm}}p{{3cm}}p{{3cm}}p{{1.5cm}}p{{2cm}}p{{1.5cm}}}}
     \\toprule
-    & \multicolumn{{6}}{{c}}{{Average}} & & \\\\
-    & \multicolumn{{5}}{{c}}{{Average}} & & \\\\
-   Country & Public Debt as \\% of GDP & 10 Year Bond Yield & Real GDP Growth &  & Mode Moody Rating & No. Observations \\\\
+    & \multicolumn{{4}}{{c}}{{Average}} & & \\\\
+    & \\cline{{2-4}} & & \\\\
+   Country & & Public Debt as \\% of GDP & 10 Year Bond Yield & Real GDP Growth &   Mode Moody Rating & No. Observations \\\\
    \\midrule
     {table_body}
     \\midrule
@@ -60,7 +72,6 @@ def generate_descriptive_statistics_from_full_event_study_dataset(data):
 
     # Insert empty columns for breaks
     average_data.insert(1, "Break1", "")
-    average_data.insert(6, "Break2", "")
 
     return average_data
 
@@ -85,7 +96,7 @@ def generate_sentiment_bond_spread_correlation_table(event_study_data):
     {table_body}
     \\bottomrule
     \\begin{{minipage}}{{15cm}}
-    \\footnotesize{{\\textbf{{Notes:}} The table shows corrleations between the bond yield spread of the country (measured as the difference between the 10 year government bond yield of that country with the United States' bond yield) and our raw sentiment index.}})
+    \\footnotesize{{\\textbf{{Notes:}} The table shows corrleations between the bond yield spread of the country (measured as the difference between the 10 year government bond yield of that country with the United States' bond yield) and our raw sentiment index.  The stars indicate the significance level of the correlation coefficient obtained by running a t-test on the regresssion coefficient on a univariate regression of the bond spread on the sentiment index: *** p<0.01, ** p<0.05, * p<0.1.}})
     \\end{{minipage}}
     \\end{{tabular}}
     }}
@@ -98,20 +109,43 @@ def generate_sentiment_bond_spread_correlation_table(event_study_data):
 
 def generate_sentiment_bond_spread_correlation_from_event_study_data(event_study_data):
     # Group the data by 'Country' and calculate the correlation of 'Bond_Yield_Spread' and 'McDonald_Sentiment_Index'
-    correlations = event_study_data.groupby("Country").apply(
-        lambda x: x[["Bond_Yield_Spread", "McDonald_Sentiment_Index"]].corr().iloc[0, 1]
+    correlations = (
+        event_study_data.groupby("Country")
+        .apply(
+            lambda x: x[["Bond_Yield_Spread", "McDonald_Sentiment_Index"]]
+            .corr()
+            .iloc[0, 1]
+        )
+        .reset_index()
+        .rename(columns={0: "Correlation"})
     )
 
-    # Convert the Series to a DataFrame
-    correlations = correlations.to_frame().reset_index()
-    # Rename the columns
-    correlations.columns = ["Country", "Correlation"]
+    correlations["Correlation"] = correlations["Correlation"].round(2)
 
-    # Drop NA's and round
-    correlations = correlations.dropna().round(2)
+    p_values = event_study_data.groupby("Country").apply(
+        calculate_p_value_for_from_univariate_regression
+    )
 
-    # Capitalise the country names
+    # Add stars to the correlation coefficients based on their p-values
+    correlations["Correlation"] = np.where(
+        p_values < 0.01,
+        correlations["Correlation"].astype(str) + "***",
+        correlations["Correlation"],
+    )
+    correlations["Correlation"] = np.where(
+        (p_values >= 0.01) & (p_values < 0.05),
+        correlations["Correlation"].astype(str) + "**",
+        correlations["Correlation"],
+    )
+    correlations["Correlation"] = np.where(
+        (p_values >= 0.05) & (p_values < 0.1),
+        correlations["Correlation"].astype(str) + "*",
+        correlations["Correlation"],
+    )
+
+    # Capitalise the country names and sort by 'Country'
     correlations["Country"] = correlations["Country"].str.title()
+    correlations = correlations.dropna().sort_values("Country").dropna()
 
     return correlations
 
