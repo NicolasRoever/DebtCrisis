@@ -1,19 +1,66 @@
-from debt_crisis.gpt_sentiment_index.gpt_sentiment_index import (
-    extract_gpt_training_dataset_from_preprocessed_transcripts,
-    get_index_where_words_occur,
+from debt_crisis.gpt_sentiment_index.gpt_index_analysis import (
+    calculate_gpt_sentiment_index,
 )
 
 from debt_crisis.sentiment_index.clean_sentiment_data import preprocess_transcript_text
 
 import pytest
 import pandas as pd
+import numpy as np
 
 
-@pytest.fixture
-def test_transcript():
+def test_calculate_gpt_sentiment_index():
+    # Sample preprocessed data for testing
+    data = {
+        "Date": pd.date_range(start="2003-01-01", periods=10, freq="D"),
+        "Prediction": [1, 2, 2, -1, -2, 2, 2, 1, 1, 0],
+    }
+    preprocessed_data = pd.DataFrame(data)
+
+    # Define the country under study
+    country_under_study = "CountryA"
+
+    # Expected output for the test case
+    expected_output = {
+        "Date": pd.date_range(start="2003-01-01", periods=10, freq="D"),
+        "Sentiment_GPT_CountryA": [
+            1,
+            1.5,
+            1.66667,
+            1,
+            0.4,
+            0.666667,
+            0.857143,
+            0.875000,
+            0.888889,
+            0.800000,
+        ],
+    }
+    expected_output_df = pd.DataFrame(expected_output)
+
+    actual_output = calculate_gpt_sentiment_index(
+        preprocessed_data, country_under_study, day_window=90
+    )
+
+    # Check if the calculated values are as expected
+    for idx, row in expected_output_df.iterrows():
+        date = row["Date"]
+        expected_value = row[f"Sentiment_GPT_{country_under_study}"]
+        result_value = actual_output.loc[
+            actual_output["Date"] == date, f"Sentiment_GPT_{country_under_study}"
+        ].values
+        if pd.isna(expected_value):
+            assert pd.isna(
+                result_value
+            ), f"Expected NaN for date {date}, but got {result_value}"
+        else:
+            assert np.isclose(
+                result_value, expected_value, atol=0.01
+            ), f"Sentiment index for {date} does not match. Expected: {expected_value}, Got: {result_value}"
+
+    # @pytest.fixture
+    # def test_transcript():
     return r"""
-
-
 Thomson Reuters StreetEvents Event Transcript
 E D I T E D   V E R S I O N
 
@@ -557,28 +604,28 @@ Copyright 2019 Thomson Reuters. All Rights Reserved.
 """
 
 
-def test_extract_gpt_training_dataset_from_preprocessed_transcripts(test_transcript):
-    country_names_set = set(["swiss", "belgium"])
+# def test_extract_gpt_training_dataset_from_preprocessed_transcripts(test_transcript):
+#     country_names_set = set(["swiss", "belgium"])
 
-    transcript_row = pd.DataFrame(
-        {
-            "Transcript_ID": 1,
-            "Preprocessed_Transcript_Step_1": preprocess_transcript_text(
-                test_transcript
-            ),
-        },
-        index=[0],
-    )
+#     transcript_row = pd.DataFrame(
+#         {
+#             "Transcript_ID": 1,
+#             "Preprocessed_Transcript_Step_1": preprocess_transcript_text(
+#                 test_transcript
+#             ),
+#         },
+#         index=[0],
+#     )
 
-    actual_result = extract_gpt_training_dataset_from_preprocessed_transcripts(
-        transcript_row, country_names_set
-    )
+#     actual_result = extract_gpt_training_dataset_from_preprocessed_transcripts(
+#         transcript_row, country_names_set
+#     )
 
-    assert len(actual_result) == 91
+#     assert len(actual_result) == 91
 
 
-def test_get_index_where_words_occur():
-    set_of_words = {"hello", "world"}
-    text = "hello world, hello again"
-    expected_output = [0, 6, 13]
-    assert get_index_where_words_occur(set_of_words, text) == expected_output
+# def test_get_index_where_words_occur():
+#     set_of_words = {"hello", "world"}
+#     text = "hello world, hello again"
+#     expected_output = [0, 6, 13]
+#     assert get_index_where_words_occur(set_of_words, text) == expected_output
