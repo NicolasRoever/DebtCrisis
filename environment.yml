@@ -5,7 +5,6 @@ dependencies:
   - conda-lock
   - ipykernel
   - jupyterlab
-  - re
   - pandas
   - pip >=21.1
   - plotly>=5.13.0
@@ -28,4 +27,8 @@ dependencies:
   - openpyxl
   - seaborn
   - pandasdmx
-  - pip: [-e ., kaleido, pdbp, spacy, regex, fredapi]
+  - xmltodict
+  - bertopic
+  - pip:
+      - en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0.tar.gz
+  - pip: [-e ., kaleido, pdbp, spacy, regex, fredapi, spacy, stargazer]
