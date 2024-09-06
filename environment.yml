@@ -31,4 +31,16 @@ dependencies:
   - bertopic
   - pip:
       - en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0.tar.gz
-  - pip: [-e ., kaleido, pdbp, spacy, regex, fredapi, spacy, stargazer]
+  - pip:
+      - -e .
+      - kaleido
+      - pdbp
+      - spacy
+      - regex
+      - fredapi
+      - spacy
+      - stargazer
+      - transformers
+      - torch
+      - bertopic
+      - ace_tools
